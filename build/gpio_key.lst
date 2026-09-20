@@ -1,0 +1,193 @@
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.arch armv7-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"gpio_key.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "bsp/gpio/gpio_key.c"
+  18              		.section	.text.Key1_IsPressed,"ax",%progbits
+  19              		.align	1
+  20              		.global	Key1_IsPressed
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  25              	Key1_IsPressed:
+  26              	.LFB65:
+   1:bsp/gpio/gpio_key.c **** /**
+   2:bsp/gpio/gpio_key.c ****  * @file gpio_key.c
+   3:bsp/gpio/gpio_key.c ****  * @brief 按键引脚读取（BSP 层，HAL 实现）。
+   4:bsp/gpio/gpio_key.c ****  *
+   5:bsp/gpio/gpio_key.c ****  * 引脚 B1=PA4、B2=PA5、B3=PA6 已由 CubeMX 在 Core/Src/gpio.c 的
+   6:bsp/gpio/gpio_key.c ****  * MX_GPIO_Init() 配置为上拉输入，按下时读到低电平。
+   7:bsp/gpio/gpio_key.c ****  */
+   8:bsp/gpio/gpio_key.c **** #include "gpio_key.h"
+   9:bsp/gpio/gpio_key.c **** #include "main.h"
+  10:bsp/gpio/gpio_key.c **** 
+  11:bsp/gpio/gpio_key.c **** uint8_t Key1_IsPressed(void)
+  12:bsp/gpio/gpio_key.c **** {
+  27              		.loc 1 12 1 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31 0000 08B5     		push	{r3, lr}
+  32              	.LCFI0:
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 3, -8
+  35              		.cfi_offset 14, -4
+  13:bsp/gpio/gpio_key.c ****     return (HAL_GPIO_ReadPin(Button1_GPIO_Port, Button1_Pin) == GPIO_PIN_RESET) ? 1u : 0u;
+  36              		.loc 1 13 5 view .LVU1
+  37              		.loc 1 13 13 is_stmt 0 view .LVU2
+  38 0002 1021     		movs	r1, #16
+  39 0004 0348     		ldr	r0, .L5
+  40 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
+  41              	.LVL0:
+  42              		.loc 1 13 86 discriminator 1 view .LVU3
+  43 000a 08B9     		cbnz	r0, .L3
+  44 000c 0120     		movs	r0, #1
+  45              	.L2:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s 			page 2
+
+
+  14:bsp/gpio/gpio_key.c **** }
+  46              		.loc 1 14 1 view .LVU4
+  47 000e 08BD     		pop	{r3, pc}
+  48              	.L3:
+  13:bsp/gpio/gpio_key.c ****     return (HAL_GPIO_ReadPin(Button1_GPIO_Port, Button1_Pin) == GPIO_PIN_RESET) ? 1u : 0u;
+  49              		.loc 1 13 86 discriminator 2 view .LVU5
+  50 0010 0020     		movs	r0, #0
+  51 0012 FCE7     		b	.L2
+  52              	.L6:
+  53              		.align	2
+  54              	.L5:
+  55 0014 00080140 		.word	1073809408
+  56              		.cfi_endproc
+  57              	.LFE65:
+  59              		.section	.text.Key2_IsPressed,"ax",%progbits
+  60              		.align	1
+  61              		.global	Key2_IsPressed
+  62              		.syntax unified
+  63              		.thumb
+  64              		.thumb_func
+  66              	Key2_IsPressed:
+  67              	.LFB66:
+  15:bsp/gpio/gpio_key.c **** 
+  16:bsp/gpio/gpio_key.c **** uint8_t Key2_IsPressed(void)
+  17:bsp/gpio/gpio_key.c **** {
+  68              		.loc 1 17 1 is_stmt 1 view -0
+  69              		.cfi_startproc
+  70              		@ args = 0, pretend = 0, frame = 0
+  71              		@ frame_needed = 0, uses_anonymous_args = 0
+  72 0000 08B5     		push	{r3, lr}
+  73              	.LCFI1:
+  74              		.cfi_def_cfa_offset 8
+  75              		.cfi_offset 3, -8
+  76              		.cfi_offset 14, -4
+  18:bsp/gpio/gpio_key.c ****     return (HAL_GPIO_ReadPin(Button2_GPIO_Port, Button2_Pin) == GPIO_PIN_RESET) ? 1u : 0u;
+  77              		.loc 1 18 5 view .LVU7
+  78              		.loc 1 18 13 is_stmt 0 view .LVU8
+  79 0002 2021     		movs	r1, #32
+  80 0004 0348     		ldr	r0, .L11
+  81 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
+  82              	.LVL1:
+  83              		.loc 1 18 86 discriminator 1 view .LVU9
+  84 000a 08B9     		cbnz	r0, .L9
+  85 000c 0120     		movs	r0, #1
+  86              	.L8:
+  19:bsp/gpio/gpio_key.c **** }
+  87              		.loc 1 19 1 view .LVU10
+  88 000e 08BD     		pop	{r3, pc}
+  89              	.L9:
+  18:bsp/gpio/gpio_key.c ****     return (HAL_GPIO_ReadPin(Button2_GPIO_Port, Button2_Pin) == GPIO_PIN_RESET) ? 1u : 0u;
+  90              		.loc 1 18 86 discriminator 2 view .LVU11
+  91 0010 0020     		movs	r0, #0
+  92 0012 FCE7     		b	.L8
+  93              	.L12:
+  94              		.align	2
+  95              	.L11:
+  96 0014 00080140 		.word	1073809408
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s 			page 3
+
+
+  97              		.cfi_endproc
+  98              	.LFE66:
+ 100              		.section	.text.Key3_IsPressed,"ax",%progbits
+ 101              		.align	1
+ 102              		.global	Key3_IsPressed
+ 103              		.syntax unified
+ 104              		.thumb
+ 105              		.thumb_func
+ 107              	Key3_IsPressed:
+ 108              	.LFB67:
+  20:bsp/gpio/gpio_key.c **** 
+  21:bsp/gpio/gpio_key.c **** uint8_t Key3_IsPressed(void)
+  22:bsp/gpio/gpio_key.c **** {
+ 109              		.loc 1 22 1 is_stmt 1 view -0
+ 110              		.cfi_startproc
+ 111              		@ args = 0, pretend = 0, frame = 0
+ 112              		@ frame_needed = 0, uses_anonymous_args = 0
+ 113 0000 08B5     		push	{r3, lr}
+ 114              	.LCFI2:
+ 115              		.cfi_def_cfa_offset 8
+ 116              		.cfi_offset 3, -8
+ 117              		.cfi_offset 14, -4
+  23:bsp/gpio/gpio_key.c ****     return (HAL_GPIO_ReadPin(Button3_GPIO_Port, Button3_Pin) == GPIO_PIN_RESET) ? 1u : 0u;
+ 118              		.loc 1 23 5 view .LVU13
+ 119              		.loc 1 23 13 is_stmt 0 view .LVU14
+ 120 0002 4021     		movs	r1, #64
+ 121 0004 0348     		ldr	r0, .L17
+ 122 0006 FFF7FEFF 		bl	HAL_GPIO_ReadPin
+ 123              	.LVL2:
+ 124              		.loc 1 23 86 discriminator 1 view .LVU15
+ 125 000a 08B9     		cbnz	r0, .L15
+ 126 000c 0120     		movs	r0, #1
+ 127              	.L14:
+  24:bsp/gpio/gpio_key.c **** }
+ 128              		.loc 1 24 1 view .LVU16
+ 129 000e 08BD     		pop	{r3, pc}
+ 130              	.L15:
+  23:bsp/gpio/gpio_key.c ****     return (HAL_GPIO_ReadPin(Button3_GPIO_Port, Button3_Pin) == GPIO_PIN_RESET) ? 1u : 0u;
+ 131              		.loc 1 23 86 discriminator 2 view .LVU17
+ 132 0010 0020     		movs	r0, #0
+ 133 0012 FCE7     		b	.L14
+ 134              	.L18:
+ 135              		.align	2
+ 136              	.L17:
+ 137 0014 00080140 		.word	1073809408
+ 138              		.cfi_endproc
+ 139              	.LFE67:
+ 141              		.text
+ 142              	.Letext0:
+ 143              		.file 2 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 144              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 145              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
+ 146              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h"
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s 			page 4
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 gpio_key.c
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:19     .text.Key1_IsPressed:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:25     .text.Key1_IsPressed:00000000 Key1_IsPressed
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:55     .text.Key1_IsPressed:00000014 $d
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:60     .text.Key2_IsPressed:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:66     .text.Key2_IsPressed:00000000 Key2_IsPressed
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:96     .text.Key2_IsPressed:00000014 $d
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:101    .text.Key3_IsPressed:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:107    .text.Key3_IsPressed:00000000 Key3_IsPressed
+C:\Users\LJH\AppData\Local\Temp\ccpeCv2H.s:137    .text.Key3_IsPressed:00000014 $d
+
+UNDEFINED SYMBOLS
+HAL_GPIO_ReadPin

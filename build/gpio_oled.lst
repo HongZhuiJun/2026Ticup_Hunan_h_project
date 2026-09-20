@@ -1,0 +1,189 @@
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccViczIn.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.arch armv7-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"gpio_oled.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "bsp/gpio/gpio_oled.c"
+  18              		.section	.text.OLED_W_SCL,"ax",%progbits
+  19              		.align	1
+  20              		.global	OLED_W_SCL
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  25              	OLED_W_SCL:
+  26              	.LVL0:
+  27              	.LFB65:
+   1:bsp/gpio/gpio_oled.c **** /**
+   2:bsp/gpio/gpio_oled.c ****  * @file gpio_oled.c
+   3:bsp/gpio/gpio_oled.c ****  * @brief OLED 软件 I2C 的 SCL/SDA 引脚驱动（BSP 层，HAL 实现）。
+   4:bsp/gpio/gpio_oled.c ****  *
+   5:bsp/gpio/gpio_oled.c ****  * 引脚 SCL=PB8、SDA=PB9 由 CubeMX 生成于 Core/Src/gpio.c 的 MX_GPIO_Init()，
+   6:bsp/gpio/gpio_oled.c ****  * 本文件不再重复配置，只负责电平写入与初始化时的总线释放。
+   7:bsp/gpio/gpio_oled.c ****  */
+   8:bsp/gpio/gpio_oled.c **** #include "gpio_oled.h"
+   9:bsp/gpio/gpio_oled.c **** #include "main.h"
+  10:bsp/gpio/gpio_oled.c **** #include "delay.h"
+  11:bsp/gpio/gpio_oled.c **** 
+  12:bsp/gpio/gpio_oled.c **** 
+  13:bsp/gpio/gpio_oled.c **** void OLED_W_SCL(uint8_t bit_value)
+  14:bsp/gpio/gpio_oled.c **** {
+  28              		.loc 1 14 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		.loc 1 14 1 is_stmt 0 view .LVU1
+  33 0000 08B5     		push	{r3, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 8
+  36              		.cfi_offset 3, -8
+  37              		.cfi_offset 14, -4
+  15:bsp/gpio/gpio_oled.c ****     HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin,
+  38              		.loc 1 15 5 is_stmt 1 view .LVU2
+  39 0002 021E     		subs	r2, r0, #0
+  40 0004 18BF     		it	ne
+  41 0006 0122     		movne	r2, #1
+  42 0008 4021     		movs	r1, #64
+  43 000a 0248     		ldr	r0, .L3
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccViczIn.s 			page 2
+
+
+  44              	.LVL1:
+  45              		.loc 1 15 5 is_stmt 0 view .LVU3
+  46 000c FFF7FEFF 		bl	HAL_GPIO_WritePin
+  47              	.LVL2:
+  16:bsp/gpio/gpio_oled.c ****                       (bit_value != 0u) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  17:bsp/gpio/gpio_oled.c **** }
+  48              		.loc 1 17 1 view .LVU4
+  49 0010 08BD     		pop	{r3, pc}
+  50              	.L4:
+  51 0012 00BF     		.align	2
+  52              	.L3:
+  53 0014 000C0140 		.word	1073810432
+  54              		.cfi_endproc
+  55              	.LFE65:
+  57              		.section	.text.OLED_W_SDA,"ax",%progbits
+  58              		.align	1
+  59              		.global	OLED_W_SDA
+  60              		.syntax unified
+  61              		.thumb
+  62              		.thumb_func
+  64              	OLED_W_SDA:
+  65              	.LVL3:
+  66              	.LFB66:
+  18:bsp/gpio/gpio_oled.c **** 
+  19:bsp/gpio/gpio_oled.c **** void OLED_W_SDA(uint8_t bit_value)
+  20:bsp/gpio/gpio_oled.c **** {
+  67              		.loc 1 20 1 is_stmt 1 view -0
+  68              		.cfi_startproc
+  69              		@ args = 0, pretend = 0, frame = 0
+  70              		@ frame_needed = 0, uses_anonymous_args = 0
+  71              		.loc 1 20 1 is_stmt 0 view .LVU6
+  72 0000 08B5     		push	{r3, lr}
+  73              	.LCFI1:
+  74              		.cfi_def_cfa_offset 8
+  75              		.cfi_offset 3, -8
+  76              		.cfi_offset 14, -4
+  21:bsp/gpio/gpio_oled.c ****     HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin,
+  77              		.loc 1 21 5 is_stmt 1 view .LVU7
+  78 0002 021E     		subs	r2, r0, #0
+  79 0004 18BF     		it	ne
+  80 0006 0122     		movne	r2, #1
+  81 0008 8021     		movs	r1, #128
+  82 000a 0248     		ldr	r0, .L7
+  83              	.LVL4:
+  84              		.loc 1 21 5 is_stmt 0 view .LVU8
+  85 000c FFF7FEFF 		bl	HAL_GPIO_WritePin
+  86              	.LVL5:
+  22:bsp/gpio/gpio_oled.c ****                       (bit_value != 0u) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+  23:bsp/gpio/gpio_oled.c **** }
+  87              		.loc 1 23 1 view .LVU9
+  88 0010 08BD     		pop	{r3, pc}
+  89              	.L8:
+  90 0012 00BF     		.align	2
+  91              	.L7:
+  92 0014 000C0140 		.word	1073810432
+  93              		.cfi_endproc
+  94              	.LFE66:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccViczIn.s 			page 3
+
+
+  96              		.section	.text.OLED_GPIO_Init,"ax",%progbits
+  97              		.align	1
+  98              		.global	OLED_GPIO_Init
+  99              		.syntax unified
+ 100              		.thumb
+ 101              		.thumb_func
+ 103              	OLED_GPIO_Init:
+ 104              	.LFB67:
+  24:bsp/gpio/gpio_oled.c **** 
+  25:bsp/gpio/gpio_oled.c **** void OLED_GPIO_Init(void)
+  26:bsp/gpio/gpio_oled.c **** {
+ 105              		.loc 1 26 1 is_stmt 1 view -0
+ 106              		.cfi_startproc
+ 107              		@ args = 0, pretend = 0, frame = 0
+ 108              		@ frame_needed = 0, uses_anonymous_args = 0
+ 109 0000 08B5     		push	{r3, lr}
+ 110              	.LCFI2:
+ 111              		.cfi_def_cfa_offset 8
+ 112              		.cfi_offset 3, -8
+ 113              		.cfi_offset 14, -4
+  27:bsp/gpio/gpio_oled.c ****     delay_ms(10); /* 等待总线稳定，避免上电时的干扰 */
+ 114              		.loc 1 27 5 view .LVU11
+ 115 0002 0A20     		movs	r0, #10
+ 116 0004 FFF7FEFF 		bl	delay_ms
+ 117              	.LVL6:
+  28:bsp/gpio/gpio_oled.c **** 
+  29:bsp/gpio/gpio_oled.c ****     /* 释放总线：SCL/SDA 开漏输出配置见 gpio.c 的 MX_GPIO_Init() */
+  30:bsp/gpio/gpio_oled.c ****     OLED_W_SCL(1u);
+ 118              		.loc 1 30 5 view .LVU12
+ 119 0008 0120     		movs	r0, #1
+ 120 000a FFF7FEFF 		bl	OLED_W_SCL
+ 121              	.LVL7:
+  31:bsp/gpio/gpio_oled.c ****     OLED_W_SDA(1u);
+ 122              		.loc 1 31 5 view .LVU13
+ 123 000e 0120     		movs	r0, #1
+ 124 0010 FFF7FEFF 		bl	OLED_W_SDA
+ 125              	.LVL8:
+  32:bsp/gpio/gpio_oled.c **** }
+ 126              		.loc 1 32 1 is_stmt 0 view .LVU14
+ 127 0014 08BD     		pop	{r3, pc}
+ 128              		.cfi_endproc
+ 129              	.LFE67:
+ 131              		.text
+ 132              	.Letext0:
+ 133              		.file 2 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 134              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 135              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
+ 136              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_gpio.h"
+ 137              		.file 6 "bsp/delay.h"
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccViczIn.s 			page 4
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 gpio_oled.c
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:19     .text.OLED_W_SCL:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:25     .text.OLED_W_SCL:00000000 OLED_W_SCL
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:53     .text.OLED_W_SCL:00000014 $d
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:58     .text.OLED_W_SDA:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:64     .text.OLED_W_SDA:00000000 OLED_W_SDA
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:92     .text.OLED_W_SDA:00000014 $d
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:97     .text.OLED_GPIO_Init:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccViczIn.s:103    .text.OLED_GPIO_Init:00000000 OLED_GPIO_Init
+
+UNDEFINED SYMBOLS
+HAL_GPIO_WritePin
+delay_ms

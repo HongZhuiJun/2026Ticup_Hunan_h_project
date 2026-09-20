@@ -1,0 +1,238 @@
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.arch armv7-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"key.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "modules/key.c"
+  18              		.section	.text.Key_GetNum,"ax",%progbits
+  19              		.align	1
+  20              		.global	Key_GetNum
+  21              		.syntax unified
+  22              		.thumb
+  23              		.thumb_func
+  25              	Key_GetNum:
+  26              	.LFB65:
+   1:modules/key.c **** /**
+   2:modules/key.c ****  * @file key.c
+   3:modules/key.c ****  * @brief 按键扫描模块（模块层）。
+   4:modules/key.c ****  *
+   5:modules/key.c ****  * 通过 BSP 层 gpio_key 读取引脚状态，实现按下识别、回弹消抖
+   6:modules/key.c ****  * 与松手判定，每次完整按压只返回一次键码。
+   7:modules/key.c ****  */
+   8:modules/key.c **** #include "key.h"
+   9:modules/key.c **** #include "gpio_key.h"
+  10:modules/key.c **** #include "delay.h"
+  11:modules/key.c **** 
+  12:modules/key.c **** /* 消抖等待时间，避开按键按下瞬间的机械抖动 */
+  13:modules/key.c **** #define KEY_DEBOUNCE_TIME_MS 20u
+  14:modules/key.c **** 
+  15:modules/key.c **** 
+  16:modules/key.c **** /**
+  17:modules/key.c ****  * @brief 获取被按下并松开的按键键码。
+  18:modules/key.c ****  * @return 键码 KEY_NUM_KEY1/KEY_NUM_KEY2/KEY_NUM_KEY3；
+  19:modules/key.c ****  *         无按键按下时返回 KEY_NUM_NONE。
+  20:modules/key.c ****  */
+  21:modules/key.c **** uint8_t Key_GetNum(void)
+  22:modules/key.c **** {
+  27              		.loc 1 22 1 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31 0000 08B5     		push	{r3, lr}
+  32              	.LCFI0:
+  33              		.cfi_def_cfa_offset 8
+  34              		.cfi_offset 3, -8
+  35              		.cfi_offset 14, -4
+  23:modules/key.c ****     uint8_t key_num = KEY_NUM_NONE;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s 			page 2
+
+
+  36              		.loc 1 23 5 view .LVU1
+  37              	.LVL0:
+  24:modules/key.c **** 
+  25:modules/key.c ****     if (Key1_IsPressed() != 0u) {
+  38              		.loc 1 25 5 view .LVU2
+  39              		.loc 1 25 9 is_stmt 0 view .LVU3
+  40 0002 FFF7FEFF 		bl	Key1_IsPressed
+  41              	.LVL1:
+  42              		.loc 1 25 8 discriminator 1 view .LVU4
+  43 0006 68B1     		cbz	r0, .L2
+  26:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+  44              		.loc 1 26 9 is_stmt 1 view .LVU5
+  45 0008 1420     		movs	r0, #20
+  46 000a FFF7FEFF 		bl	delay_ms
+  47              	.LVL2:
+  27:modules/key.c ****         if (Key1_IsPressed() != 0u) {
+  48              		.loc 1 27 9 view .LVU6
+  49              		.loc 1 27 13 is_stmt 0 view .LVU7
+  50 000e FFF7FEFF 		bl	Key1_IsPressed
+  51              	.LVL3:
+  52              		.loc 1 27 12 discriminator 1 view .LVU8
+  53 0012 0346     		mov	r3, r0
+  54 0014 20B1     		cbz	r0, .L3
+  55              	.L4:
+  28:modules/key.c ****             while (Key1_IsPressed() != 0u) { }
+  56              		.loc 1 28 46 is_stmt 1 discriminator 1 view .LVU9
+  57              		.loc 1 28 37 discriminator 1 view .LVU10
+  58              		.loc 1 28 20 is_stmt 0 discriminator 1 view .LVU11
+  59 0016 FFF7FEFF 		bl	Key1_IsPressed
+  60              	.LVL4:
+  61              		.loc 1 28 37 discriminator 1 view .LVU12
+  62 001a 0028     		cmp	r0, #0
+  63 001c FBD1     		bne	.L4
+  29:modules/key.c ****             key_num = KEY_NUM_KEY1;
+  64              		.loc 1 29 21 view .LVU13
+  65 001e 0123     		movs	r3, #1
+  66              	.L3:
+  67              	.LVL5:
+  30:modules/key.c ****         }
+  31:modules/key.c ****     } else if (Key2_IsPressed() != 0u) {
+  32:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+  33:modules/key.c ****         if (Key2_IsPressed() != 0u) {
+  34:modules/key.c ****             while (Key2_IsPressed() != 0u) { }
+  35:modules/key.c ****             key_num = KEY_NUM_KEY2;
+  36:modules/key.c ****         }
+  37:modules/key.c ****     } else if (Key3_IsPressed() != 0u) {
+  38:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+  39:modules/key.c ****         if (Key3_IsPressed() != 0u) {
+  40:modules/key.c ****             while (Key3_IsPressed() != 0u) { }
+  41:modules/key.c ****             key_num = KEY_NUM_KEY3;
+  42:modules/key.c ****         }
+  43:modules/key.c ****     }
+  44:modules/key.c **** 
+  45:modules/key.c ****     return key_num;
+  68              		.loc 1 45 5 is_stmt 1 view .LVU14
+  46:modules/key.c **** }
+  69              		.loc 1 46 1 is_stmt 0 view .LVU15
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s 			page 3
+
+
+  70 0020 1846     		mov	r0, r3
+  71 0022 08BD     		pop	{r3, pc}
+  72              	.LVL6:
+  73              	.L2:
+  31:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+  74              		.loc 1 31 12 is_stmt 1 view .LVU16
+  31:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+  75              		.loc 1 31 16 is_stmt 0 view .LVU17
+  76 0024 FFF7FEFF 		bl	Key2_IsPressed
+  77              	.LVL7:
+  31:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+  78              		.loc 1 31 15 discriminator 1 view .LVU18
+  79 0028 68B1     		cbz	r0, .L5
+  32:modules/key.c ****         if (Key2_IsPressed() != 0u) {
+  80              		.loc 1 32 9 is_stmt 1 view .LVU19
+  81 002a 1420     		movs	r0, #20
+  82 002c FFF7FEFF 		bl	delay_ms
+  83              	.LVL8:
+  33:modules/key.c ****             while (Key2_IsPressed() != 0u) { }
+  84              		.loc 1 33 9 view .LVU20
+  33:modules/key.c ****             while (Key2_IsPressed() != 0u) { }
+  85              		.loc 1 33 13 is_stmt 0 view .LVU21
+  86 0030 FFF7FEFF 		bl	Key2_IsPressed
+  87              	.LVL9:
+  33:modules/key.c ****             while (Key2_IsPressed() != 0u) { }
+  88              		.loc 1 33 12 discriminator 1 view .LVU22
+  89 0034 0346     		mov	r3, r0
+  90 0036 0028     		cmp	r0, #0
+  91 0038 F2D0     		beq	.L3
+  92              	.L6:
+  34:modules/key.c ****             key_num = KEY_NUM_KEY2;
+  93              		.loc 1 34 46 is_stmt 1 discriminator 1 view .LVU23
+  34:modules/key.c ****             key_num = KEY_NUM_KEY2;
+  94              		.loc 1 34 37 discriminator 1 view .LVU24
+  34:modules/key.c ****             key_num = KEY_NUM_KEY2;
+  95              		.loc 1 34 20 is_stmt 0 discriminator 1 view .LVU25
+  96 003a FFF7FEFF 		bl	Key2_IsPressed
+  97              	.LVL10:
+  34:modules/key.c ****             key_num = KEY_NUM_KEY2;
+  98              		.loc 1 34 37 discriminator 1 view .LVU26
+  99 003e 0028     		cmp	r0, #0
+ 100 0040 FBD1     		bne	.L6
+  35:modules/key.c ****         }
+ 101              		.loc 1 35 21 view .LVU27
+ 102 0042 0223     		movs	r3, #2
+ 103 0044 ECE7     		b	.L3
+ 104              	.L5:
+  37:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+ 105              		.loc 1 37 12 is_stmt 1 view .LVU28
+  37:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+ 106              		.loc 1 37 16 is_stmt 0 view .LVU29
+ 107 0046 FFF7FEFF 		bl	Key3_IsPressed
+ 108              	.LVL11:
+  37:modules/key.c ****         delay_ms(KEY_DEBOUNCE_TIME_MS);
+ 109              		.loc 1 37 15 discriminator 1 view .LVU30
+ 110 004a 0346     		mov	r3, r0
+ 111 004c 0028     		cmp	r0, #0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s 			page 4
+
+
+ 112 004e E7D0     		beq	.L3
+  38:modules/key.c ****         if (Key3_IsPressed() != 0u) {
+ 113              		.loc 1 38 9 is_stmt 1 view .LVU31
+ 114 0050 1420     		movs	r0, #20
+ 115 0052 FFF7FEFF 		bl	delay_ms
+ 116              	.LVL12:
+  39:modules/key.c ****             while (Key3_IsPressed() != 0u) { }
+ 117              		.loc 1 39 9 view .LVU32
+  39:modules/key.c ****             while (Key3_IsPressed() != 0u) { }
+ 118              		.loc 1 39 13 is_stmt 0 view .LVU33
+ 119 0056 FFF7FEFF 		bl	Key3_IsPressed
+ 120              	.LVL13:
+  39:modules/key.c ****             while (Key3_IsPressed() != 0u) { }
+ 121              		.loc 1 39 12 discriminator 1 view .LVU34
+ 122 005a 0346     		mov	r3, r0
+ 123 005c 0028     		cmp	r0, #0
+ 124 005e DFD0     		beq	.L3
+ 125              	.L7:
+  40:modules/key.c ****             key_num = KEY_NUM_KEY3;
+ 126              		.loc 1 40 46 is_stmt 1 discriminator 1 view .LVU35
+  40:modules/key.c ****             key_num = KEY_NUM_KEY3;
+ 127              		.loc 1 40 37 discriminator 1 view .LVU36
+  40:modules/key.c ****             key_num = KEY_NUM_KEY3;
+ 128              		.loc 1 40 20 is_stmt 0 discriminator 1 view .LVU37
+ 129 0060 FFF7FEFF 		bl	Key3_IsPressed
+ 130              	.LVL14:
+  40:modules/key.c ****             key_num = KEY_NUM_KEY3;
+ 131              		.loc 1 40 37 discriminator 1 view .LVU38
+ 132 0064 0028     		cmp	r0, #0
+ 133 0066 FBD1     		bne	.L7
+  41:modules/key.c ****         }
+ 134              		.loc 1 41 21 view .LVU39
+ 135 0068 0323     		movs	r3, #3
+ 136 006a D9E7     		b	.L3
+ 137              		.cfi_endproc
+ 138              	.LFE65:
+ 140              		.text
+ 141              	.Letext0:
+ 142              		.file 2 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 143              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 144              		.file 4 "bsp/gpio/gpio_key.h"
+ 145              		.file 5 "bsp/delay.h"
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s 			page 5
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 key.c
+C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s:19     .text.Key_GetNum:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccMQeEk8.s:25     .text.Key_GetNum:00000000 Key_GetNum
+
+UNDEFINED SYMBOLS
+Key1_IsPressed
+delay_ms
+Key2_IsPressed
+Key3_IsPressed

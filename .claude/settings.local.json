@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//tmp/**)",
+      "Bash(arm-none-eabi-gcc -fsyntax-only -x c -std=gnu11 -I../bsp/gpio -I. -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -DUSE_HAL_DRIVER -DSTM32F103xB -Wall -Wextra /tmp/oled_data.test)",
+      "Bash(printf 'typedef unsigned char u8;\\\\nconst u8 OLED_F6x8[][6] = \\\\n{\\\\n\\\\t{0x00,0x00,0x00,0x00,0x00,0x00,}//   0\\\\n\\\\t{0x00,0x00,0x00,0x2F,0x00,0x00,}// ! 1\\\\n\\\\t{0x00,0x00,0x07,0x00,0x07,0x00,}// \" 2\\\\n};\\\\n')",
+      "Bash(arm-none-eabi-gcc -fsyntax-only -x c -std=gnu11 -Wall /tmp/t.c)",
+      "Bash(sed -n '226,232p' /tmp/oled_data.test)"
+    ]
+  }
+}
