@@ -1,4 +1,4 @@
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 1
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 1
 
 
    1              		.cpu cortex-m3
@@ -18,779 +18,1866 @@ ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 1
   15              	.Ltext0:
   16              		.cfi_sections	.debug_frame
   17              		.file 1 "modules/oled_menu.c"
-  18              		.section	.rodata.menu1_show.str1.4,"aMS",%progbits,1
-  19              		.align	2
-  20              	.LC0:
-  21 0000 E794B5E5 		.ascii	"\347\224\265\345\255\2202503 \346\235\216\351\252\217"
-  21      AD903235 
-  21      303320E6 
-  21      9D8EE9AA 
-  21      8F
-  22 0011 E5AE8F20 		.ascii	"\345\256\217 \000"
-  22      00
-  23 0016 0000     		.align	2
-  24              	.LC1:
-  25 0018 E7AEA1E7 		.ascii	"\347\256\241\347\220\203\345\271\263\350\241\241\346"
-  25      9083E5B9 
-  25      B3E8A1A1 
-  25      E6
-  26 0025 8EA7E588 		.ascii	"\216\247\345\210\266\347\263\273\347\273\237 \000"
-  26      B6E7B3BB 
-  26      E7BB9F20 
-  26      00
-  27 0032 0000     		.align	2
-  28              	.LC2:
-  29 0034 312EE59F 		.ascii	"1.\345\237\272\347\241\200\351\203\250\345\210\206 "
-  29      BAE7A180 
-  29      E983A8E5 
-  29      888620
-  30 0043 20202020 		.ascii	"     \000"
-  30      2000
-  31 0049 000000   		.align	2
-  32              	.LC3:
-  33 004c 322EE58F 		.ascii	"2.\345\217\221\346\214\245\351\203\250\345\210\206 "
-  33      91E68CA5 
-  33      E983A8E5 
-  33      888620
-  34 005b 20202020 		.ascii	"     \000"
-  34      2000
-  35              		.section	.text.menu1_show,"ax",%progbits
-  36              		.align	1
-  37              		.global	menu1_show
-  38              		.syntax unified
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 2
+  18              		.section	.text.menu_row_to_y,"ax",%progbits
+  19              		.align	1
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  24              	menu_row_to_y:
+  25              	.LVL0:
+  26              	.LFB0:
+   1:modules/oled_menu.c **** /**
+   2:modules/oled_menu.c ****  * @file oled_menu.c
+   3:modules/oled_menu.c ****  * @brief OLED 三级菜单框架（模块层）。
+   4:modules/oled_menu.c ****  *
+   5:modules/oled_menu.c ****  * 菜单结构：
+   6:modules/oled_menu.c ****  *   一级菜单：基础部分 / 发挥部分，光标只在第 3、4 行之间移动
+   7:modules/oled_menu.c ****  *   二级菜单：基础部分 = 4 个任务 + "上一步"
+   8:modules/oled_menu.c ****  *             发挥部分 = 指定位置(确认即执行任务) + "上一步" + 位置 +1cm / -1c
+   9:modules/oled_menu.c ****  *   三级菜单：任务执行页，循环显示小球位置，确认后返回二级菜单
+  10:modules/oled_menu.c ****  *
+  11:modules/oled_menu.c ****  * 按键（见 key.h）：KEY1 上移，KEY2 下移，KEY3 确认。
+  12:modules/oled_menu.c ****  *   光标在首项时按 KEY1 回绕到末项，在末项时按 KEY2 回绕到首项。
+  13:modules/oled_menu.c ****  *
+  14:modules/oled_menu.c ****  * 三级菜单里的任务执行函数还没有写，已经用 TODO 注释标出填入位置，
+  15:modules/oled_menu.c ****  * 该注释所在的 switch 分支在任务页里每轮循环执行一次。
+  16:modules/oled_menu.c ****  *
+  17:modules/oled_menu.c ****  * 注意：
+  18:modules/oled_menu.c ****  *   1. 一帧只在最后调用一次 OLED_Update()，刷新过慢会导致按键漏检。
+  19:modules/oled_menu.c ****  *   2. 任务页每轮循环都会清屏重绘，任务代码只要更新 location_cm 即可，
+  20:modules/oled_menu.c ****  *      不要在任务里直接调用 OLED 画图，否则会被清掉。
+  21:modules/oled_menu.c ****  */
+  22:modules/oled_menu.c **** 
+  23:modules/oled_menu.c **** #include "oled_menu.h"
+  24:modules/oled_menu.c **** #include "oled.h"
+  25:modules/oled_menu.c **** #include "key.h"
+  26:modules/oled_menu.c **** 
+  27:modules/oled_menu.c **** /*-------------------------------- 显示布局 --------------------------------*/
+  28:modules/oled_menu.c **** #define MENU_ROW_HEIGHT   16u   /* OLED_8X16 字体行高，单位：像素 */
+  29:modules/oled_menu.c **** #define MENU_ROW_NUM       4u   /* 屏幕可显示的行数 */
+  30:modules/oled_menu.c **** #define MENU_ITEM_WIDTH  128u   /* 光标反相区域的宽度，单位：像素 */
+  31:modules/oled_menu.c **** 
+  32:modules/oled_menu.c **** /*-------------------------------- 一级菜单 --------------------------------*/
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 2
 
 
-  39              		.thumb
-  40              		.thumb_func
-  42              	menu1_show:
-  43              	.LFB65:
-   1:modules/oled_menu.c **** #include "oled_menu.h"
-   2:modules/oled_menu.c **** #include "oled.h"
-   3:modules/oled_menu.c **** #include "key.h"
-   4:modules/oled_menu.c **** #include "main.h"
-   5:modules/oled_menu.c **** 
-   6:modules/oled_menu.c **** uint8_t KeyNum=0;					//用于存储键码值
-   7:modules/oled_menu.c **** uint8_t D=2;					//用于存储目前按键是上还是下,默认下一项
-   8:modules/oled_menu.c **** uint8_t specified_location_cm=0;		//用于存储指定的小球位置,单位cm
-   9:modules/oled_menu.c **** uint8_t location_cm=0;				//用于存储当前小球位置,单位cm
-  10:modules/oled_menu.c **** 
-  11:modules/oled_menu.c **** /***************************************************************************************/
-  12:modules/oled_menu.c **** /*把一级菜单的flag放到全局变量,静态存储,不会丢失数据,所以从二级菜单回
-  13:modules/oled_menu.c **** 仍能回到那一行,而不是每次都回到第一行*/
-  14:modules/oled_menu.c **** uint8_t flag=3;
-  15:modules/oled_menu.c **** /***************************************************************************************/
-  16:modules/oled_menu.c **** 
-  17:modules/oled_menu.c **** void menu1_show(void)
-  18:modules/oled_menu.c **** {
-  44              		.loc 1 18 1 view -0
-  45              		.cfi_startproc
-  46              		@ args = 0, pretend = 0, frame = 0
-  47              		@ frame_needed = 0, uses_anonymous_args = 0
-  48 0000 08B5     		push	{r3, lr}
-  49              	.LCFI0:
-  50              		.cfi_def_cfa_offset 8
-  51              		.cfi_offset 3, -8
-  52              		.cfi_offset 14, -4
-  19:modules/oled_menu.c ****     OLED_ShowString(0,  0, "电子2503 李骏宏 ", OLED_8X16);
-  53              		.loc 1 19 5 view .LVU1
-  54 0002 0823     		movs	r3, #8
-  55 0004 0C4A     		ldr	r2, .L3
-  56 0006 0021     		movs	r1, #0
-  57 0008 0846     		mov	r0, r1
-  58 000a FFF7FEFF 		bl	OLED_ShowString
-  59              	.LVL0:
-  20:modules/oled_menu.c ****     OLED_ShowString(0, 16, "管球平衡控制系统 ", OLED_8X16);
-  60              		.loc 1 20 5 view .LVU2
-  61 000e 0823     		movs	r3, #8
-  62 0010 0A4A     		ldr	r2, .L3+4
-  63 0012 1021     		movs	r1, #16
-  64 0014 0020     		movs	r0, #0
-  65 0016 FFF7FEFF 		bl	OLED_ShowString
-  66              	.LVL1:
-  21:modules/oled_menu.c ****     OLED_ShowString(0, 32, "1.基础部分      ", OLED_8X16);
-  67              		.loc 1 21 5 view .LVU3
-  68 001a 0823     		movs	r3, #8
-  69 001c 084A     		ldr	r2, .L3+8
-  70 001e 2021     		movs	r1, #32
-  71 0020 0020     		movs	r0, #0
-  72 0022 FFF7FEFF 		bl	OLED_ShowString
-  73              	.LVL2:
-  22:modules/oled_menu.c ****     OLED_ShowString(0, 48, "2.发挥部分      ", OLED_8X16);
-  74              		.loc 1 22 5 view .LVU4
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 3
+  33:modules/oled_menu.c **** #define MENU1_ENTRY_NUM          2u   /* 基础部分、发挥部分 */
+  34:modules/oled_menu.c **** #define MENU1_ENTRY_BASIC        0u
+  35:modules/oled_menu.c **** #define MENU1_ENTRY_PERFORMANCE  1u
+  36:modules/oled_menu.c **** #define MENU1_FIRST_ROW          2u   /* 两个选项显示在第 3、4 行，行号从 0 开始 */
+  37:modules/oled_menu.c **** 
+  38:modules/oled_menu.c **** /*--------------------------- 二级菜单：基础部分 ----------------------------*/
+  39:modules/oled_menu.c **** #define MENU2_BASIC_TASK_NUM     4u                            /* 基础任务数量 */
+  40:modules/oled_menu.c **** #define MENU2_BASIC_ENTRY_NUM    (MENU2_BASIC_TASK_NUM + 1u)   /* 末项是"上一步" */
+  41:modules/oled_menu.c **** #define MENU2_BASIC_BACK_ENTRY   MENU2_BASIC_TASK_NUM          /* "上一步"的条目序号 */
+  42:modules/oled_menu.c **** 
+  43:modules/oled_menu.c **** /*--------------------------- 二级菜单：发挥部分 ----------------------------*/
+  44:modules/oled_menu.c **** #define MENU2_PERF_ENTRY_NUM     4u
+  45:modules/oled_menu.c **** #define MENU2_PERF_ENTRY_TARGET  0u   /* 第 1 行：指定位置，确认即执行任务 */
+  46:modules/oled_menu.c **** #define MENU2_PERF_ENTRY_BACK    1u   /* 第 2 行：上一步 */
+  47:modules/oled_menu.c **** #define MENU2_PERF_ENTRY_INC     2u   /* 第 3 行：目标位置 +1cm */
+  48:modules/oled_menu.c **** #define MENU2_PERF_ENTRY_DEC     3u   /* 第 4 行：目标位置 -1cm */
+  49:modules/oled_menu.c **** 
+  50:modules/oled_menu.c **** /*----------------------------- 目标位置调节 -------------------------------*/
+  51:modules/oled_menu.c **** #define MENU_TARGET_POSITION_STEP_CM 1       /* 每次调节的步长，单位：cm */
+  52:modules/oled_menu.c **** #define MENU_TARGET_POSITION_MAX_CM  10      /* 目标位置上限，单位：cm */
+  53:modules/oled_menu.c **** #define MENU_TARGET_POSITION_MIN_CM  (-10)   /* 目标位置下限，单位：cm */
+  54:modules/oled_menu.c **** 
+  55:modules/oled_menu.c **** /*-------------------------------- 三级菜单 --------------------------------*/
+  56:modules/oled_menu.c **** #define MENU3_BACK_HINT_ROW   3u   /* "上一步"提示显示在第 4 行，行号从 0 开始 */
+  57:modules/oled_menu.c **** #define MENU3_BACK_HINT_TEXT  "<-上一步        "
+  58:modules/oled_menu.c **** 
+  59:modules/oled_menu.c **** /* "上一步"条目文本，补足空格把整行填满，避免残留上一帧的字符 */
+  60:modules/oled_menu.c **** #define MENU_BACK_TEXT        "<-上一步        "
+  61:modules/oled_menu.c **** 
+  62:modules/oled_menu.c **** /**
+  63:modules/oled_menu.c ****  * @brief 三级菜单的任务编号。
+  64:modules/oled_menu.c ****  */
+  65:modules/oled_menu.c **** typedef enum {
+  66:modules/oled_menu.c ****     MENU_TASK_STABLE_POSITION = 0,   /* 1.定点稳定控制 */
+  67:modules/oled_menu.c ****     MENU_TASK_BACK_AND_FORTH,        /* 2.折返运动与时效 */
+  68:modules/oled_menu.c ****     MENU_TASK_CONTINUOUS_TRACK,      /* 3.连续跟踪运动 */
+  69:modules/oled_menu.c ****     MENU_TASK_ANTI_DISTURBANCE,      /* 4.抗干扰能力 */
+  70:modules/oled_menu.c ****     MENU_TASK_TARGET_POSITION,       /* 发挥部分：指定位置 */
+  71:modules/oled_menu.c **** } Menu_Task_e;
+  72:modules/oled_menu.c **** 
+  73:modules/oled_menu.c **** /**
+  74:modules/oled_menu.c ****  * @brief 菜单条目。
+  75:modules/oled_menu.c ****  */
+  76:modules/oled_menu.c **** typedef struct {
+  77:modules/oled_menu.c ****     char *text;          /* 条目显示文本 */
+  78:modules/oled_menu.c ****     Menu_Task_e task;    /* 确认后要执行的任务编号 */
+  79:modules/oled_menu.c **** } Menu_Item_s;
+  80:modules/oled_menu.c **** 
+  81:modules/oled_menu.c **** /* 一级菜单页面文本，行号 0~3 依次对应 */
+  82:modules/oled_menu.c **** static char *const kMenu1Text[MENU_ROW_NUM] = {
+  83:modules/oled_menu.c ****     "电子2503 李骏宏 ",
+  84:modules/oled_menu.c ****     "管球平衡控制系统 ",
+  85:modules/oled_menu.c ****     "1.基础部分      ",
+  86:modules/oled_menu.c ****     "2.发挥部分      ",
+  87:modules/oled_menu.c **** };
+  88:modules/oled_menu.c **** 
+  89:modules/oled_menu.c **** /* 基础部分任务列表，顺序与 MENU_TASK_xxx 一致 */
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 3
 
 
-  75 0026 0823     		movs	r3, #8
-  76 0028 064A     		ldr	r2, .L3+12
-  77 002a 3021     		movs	r1, #48
-  78 002c 0020     		movs	r0, #0
-  79 002e FFF7FEFF 		bl	OLED_ShowString
-  80              	.LVL3:
-  23:modules/oled_menu.c ****     OLED_Update();
-  81              		.loc 1 23 5 view .LVU5
-  82 0032 FFF7FEFF 		bl	OLED_Update
-  83              	.LVL4:
-  24:modules/oled_menu.c **** }
-  84              		.loc 1 24 1 is_stmt 0 view .LVU6
-  85 0036 08BD     		pop	{r3, pc}
-  86              	.L4:
-  87              		.align	2
-  88              	.L3:
-  89 0038 00000000 		.word	.LC0
-  90 003c 18000000 		.word	.LC1
-  91 0040 34000000 		.word	.LC2
-  92 0044 4C000000 		.word	.LC3
-  93              		.cfi_endproc
-  94              	.LFE65:
-  96              		.section	.rodata.menu2_1_show.str1.4,"aMS",%progbits,1
-  97              		.align	2
-  98              	.LC4:
-  99 0000 312EE5AE 		.ascii	"1.\345\256\232\347\202\271\347\250\263\345\256\232\346"
-  99      9AE782B9 
-  99      E7A8B3E5 
-  99      AE9AE6
- 100 000f 8EA7E588 		.ascii	"\216\247\345\210\266   \000"
- 100      B6202020 
- 100      00
- 101              		.align	2
- 102              	.LC5:
- 103 0018 322EE68A 		.ascii	"2.\346\212\230\350\277\224\350\277\220\345\212\250\344"
- 103      98E8BF94 
- 103      E8BF90E5 
- 103      8AA8E4
- 104 0027 B88EE697 		.ascii	"\270\216\346\227\266\346\225\210 \000"
- 104      B6E69588 
- 104      2000
- 105 0031 000000   		.align	2
- 106              	.LC6:
- 107 0034 332EE8BF 		.ascii	"3.\350\277\236\347\273\255\350\267\237\350\270\252\350"
- 107      9EE7BBAD 
- 107      E8B79FE8 
- 107      B8AAE8
- 108 0043 BF90E58A 		.ascii	"\277\220\345\212\250   \000"
- 108      A8202020 
- 108      00
- 109              		.align	2
- 110              	.LC7:
- 111 004c 342EE68A 		.ascii	"4.\346\212\227\345\271\262\346\211\260\350\203\275\345"
- 111      97E5B9B2 
- 111      E689B0E8 
- 111      83BDE5
- 112 005b 8A9B2020 		.ascii	"\212\233     \000"
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 4
+  90:modules/oled_menu.c **** static const Menu_Item_s kMenu2BasicItem[MENU2_BASIC_TASK_NUM] = {
+  91:modules/oled_menu.c ****     { "1.定点稳定控制  ", MENU_TASK_STABLE_POSITION },
+  92:modules/oled_menu.c ****     { "2.折返运动与时效", MENU_TASK_BACK_AND_FORTH },
+  93:modules/oled_menu.c ****     { "3.连续跟踪运动  ", MENU_TASK_CONTINUOUS_TRACK },
+  94:modules/oled_menu.c ****     { "4.抗干扰能力    ", MENU_TASK_ANTI_DISTURBANCE },
+  95:modules/oled_menu.c **** };
+  96:modules/oled_menu.c **** 
+  97:modules/oled_menu.c **** /* 一级菜单光标，静态保存，从下级菜单返回后仍停在原来那一项 */
+  98:modules/oled_menu.c **** static uint8_t menu1_cursor = MENU1_ENTRY_BASIC;
+  99:modules/oled_menu.c **** 
+ 100:modules/oled_menu.c **** /* 指定小球位置，单位：cm，范围 MENU_TARGET_POSITION_MIN_CM ~ MENU_TARGET_POSITION_MAX
+ 101:modules/oled_menu.c **** static int8_t specified_location_cm = 0;
+ 102:modules/oled_menu.c **** 
+ 103:modules/oled_menu.c **** /* 当前小球位置，单位：cm，由任务代码更新 */
+ 104:modules/oled_menu.c **** static uint8_t location_cm = 0u;
+ 105:modules/oled_menu.c **** 
+ 106:modules/oled_menu.c **** /**
+ 107:modules/oled_menu.c ****  * @brief 计算某一行的纵向像素坐标。
+ 108:modules/oled_menu.c ****  *
+ 109:modules/oled_menu.c ****  * @param row 行号，从 0 开始，范围 0~3
+ 110:modules/oled_menu.c ****  * @return 该行左上角的纵坐标，单位：像素
+ 111:modules/oled_menu.c ****  */
+ 112:modules/oled_menu.c **** static int16_t menu_row_to_y(uint8_t row)
+ 113:modules/oled_menu.c **** {
+  27              		.loc 1 113 1 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+ 114:modules/oled_menu.c ****     return (int16_t)(row * MENU_ROW_HEIGHT);
+  32              		.loc 1 114 5 view .LVU1
+ 115:modules/oled_menu.c **** }
+  33              		.loc 1 115 1 is_stmt 0 view .LVU2
+  34 0000 0001     		lsls	r0, r0, #4
+  35              	.LVL1:
+  36              		.loc 1 115 1 view .LVU3
+  37 0002 7047     		bx	lr
+  38              		.cfi_endproc
+  39              	.LFE0:
+  41              		.section	.text.menu_move_prev,"ax",%progbits
+  42              		.align	1
+  43              		.syntax unified
+  44              		.thumb
+  45              		.thumb_func
+  47              	menu_move_prev:
+  48              	.LVL2:
+  49              	.LFB1:
+ 116:modules/oled_menu.c **** 
+ 117:modules/oled_menu.c **** /**
+ 118:modules/oled_menu.c ****  * @brief 光标上移一项，首项回绕到末项。
+ 119:modules/oled_menu.c ****  *
+ 120:modules/oled_menu.c ****  * @param entry 当前条目序号，从 0 开始
+ 121:modules/oled_menu.c ****  * @param entry_num 条目总数
+ 122:modules/oled_menu.c ****  * @return 移动后的条目序号
+ 123:modules/oled_menu.c ****  */
+ 124:modules/oled_menu.c **** static uint8_t menu_move_prev(uint8_t entry, uint8_t entry_num)
+ 125:modules/oled_menu.c **** {
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 4
 
 
- 112      20202000 
- 113              		.section	.text.menu2_1_show,"ax",%progbits
- 114              		.align	1
- 115              		.global	menu2_1_show
- 116              		.syntax unified
- 117              		.thumb
- 118              		.thumb_func
- 120              	menu2_1_show:
- 121              	.LFB66:
-  25:modules/oled_menu.c **** 
-  26:modules/oled_menu.c **** void menu2_1_show(void)
-  27:modules/oled_menu.c **** {
- 122              		.loc 1 27 1 is_stmt 1 view -0
- 123              		.cfi_startproc
- 124              		@ args = 0, pretend = 0, frame = 0
- 125              		@ frame_needed = 0, uses_anonymous_args = 0
- 126 0000 08B5     		push	{r3, lr}
- 127              	.LCFI1:
- 128              		.cfi_def_cfa_offset 8
- 129              		.cfi_offset 3, -8
- 130              		.cfi_offset 14, -4
-  28:modules/oled_menu.c ****     OLED_ShowString(0,  0, "1.定点稳定控制   ", OLED_8X16);
- 131              		.loc 1 28 5 view .LVU8
- 132 0002 0823     		movs	r3, #8
- 133 0004 0C4A     		ldr	r2, .L7
- 134 0006 0021     		movs	r1, #0
- 135 0008 0846     		mov	r0, r1
- 136 000a FFF7FEFF 		bl	OLED_ShowString
- 137              	.LVL5:
-  29:modules/oled_menu.c ****     OLED_ShowString(0, 16, "2.折返运动与时效 ", OLED_8X16);
- 138              		.loc 1 29 5 view .LVU9
- 139 000e 0823     		movs	r3, #8
- 140 0010 0A4A     		ldr	r2, .L7+4
- 141 0012 1021     		movs	r1, #16
- 142 0014 0020     		movs	r0, #0
- 143 0016 FFF7FEFF 		bl	OLED_ShowString
- 144              	.LVL6:
-  30:modules/oled_menu.c ****     OLED_ShowString(0, 32, "3.连续跟踪运动   ", OLED_8X16);
- 145              		.loc 1 30 5 view .LVU10
- 146 001a 0823     		movs	r3, #8
- 147 001c 084A     		ldr	r2, .L7+8
- 148 001e 2021     		movs	r1, #32
- 149 0020 0020     		movs	r0, #0
- 150 0022 FFF7FEFF 		bl	OLED_ShowString
- 151              	.LVL7:
-  31:modules/oled_menu.c ****     OLED_ShowString(0, 48, "4.抗干扰能力     ", OLED_8X16);
- 152              		.loc 1 31 5 view .LVU11
- 153 0026 0823     		movs	r3, #8
- 154 0028 064A     		ldr	r2, .L7+12
- 155 002a 3021     		movs	r1, #48
- 156 002c 0020     		movs	r0, #0
- 157 002e FFF7FEFF 		bl	OLED_ShowString
- 158              	.LVL8:
-  32:modules/oled_menu.c ****     OLED_Update();
- 159              		.loc 1 32 5 view .LVU12
- 160 0032 FFF7FEFF 		bl	OLED_Update
- 161              	.LVL9:
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 5
+  50              		.loc 1 125 1 is_stmt 1 view -0
+  51              		.cfi_startproc
+  52              		@ args = 0, pretend = 0, frame = 0
+  53              		@ frame_needed = 0, uses_anonymous_args = 0
+  54              		@ link register save eliminated.
+ 126:modules/oled_menu.c ****     if (entry == 0u) {
+  55              		.loc 1 126 5 view .LVU5
+  56              		.loc 1 126 8 is_stmt 0 view .LVU6
+  57 0000 10B1     		cbz	r0, .L5
+ 127:modules/oled_menu.c ****         return (uint8_t)(entry_num - 1u);
+ 128:modules/oled_menu.c ****     }
+ 129:modules/oled_menu.c **** 
+ 130:modules/oled_menu.c ****     return (uint8_t)(entry - 1u);
+  58              		.loc 1 130 5 is_stmt 1 view .LVU7
+  59              		.loc 1 130 12 is_stmt 0 view .LVU8
+  60 0002 0138     		subs	r0, r0, #1
+  61              	.LVL3:
+  62              		.loc 1 130 12 view .LVU9
+  63 0004 C0B2     		uxtb	r0, r0
+  64              	.LVL4:
+ 131:modules/oled_menu.c **** }
+  65              		.loc 1 131 1 view .LVU10
+  66 0006 7047     		bx	lr
+  67              	.LVL5:
+  68              	.L5:
+ 127:modules/oled_menu.c ****         return (uint8_t)(entry_num - 1u);
+  69              		.loc 1 127 9 is_stmt 1 view .LVU11
+ 127:modules/oled_menu.c ****         return (uint8_t)(entry_num - 1u);
+  70              		.loc 1 127 16 is_stmt 0 view .LVU12
+  71 0008 0139     		subs	r1, r1, #1
+  72              	.LVL6:
+ 127:modules/oled_menu.c ****         return (uint8_t)(entry_num - 1u);
+  73              		.loc 1 127 16 view .LVU13
+  74 000a C8B2     		uxtb	r0, r1
+  75              	.LVL7:
+ 127:modules/oled_menu.c ****         return (uint8_t)(entry_num - 1u);
+  76              		.loc 1 127 16 view .LVU14
+  77 000c 7047     		bx	lr
+  78              		.cfi_endproc
+  79              	.LFE1:
+  81              		.section	.text.menu_move_next,"ax",%progbits
+  82              		.align	1
+  83              		.syntax unified
+  84              		.thumb
+  85              		.thumb_func
+  87              	menu_move_next:
+  88              	.LVL8:
+  89              	.LFB2:
+ 132:modules/oled_menu.c **** 
+ 133:modules/oled_menu.c **** /**
+ 134:modules/oled_menu.c ****  * @brief 光标下移一项，末项回绕到首项。
+ 135:modules/oled_menu.c ****  *
+ 136:modules/oled_menu.c ****  * @param entry 当前条目序号，从 0 开始
+ 137:modules/oled_menu.c ****  * @param entry_num 条目总数
+ 138:modules/oled_menu.c ****  * @return 移动后的条目序号
+ 139:modules/oled_menu.c ****  */
+ 140:modules/oled_menu.c **** static uint8_t menu_move_next(uint8_t entry, uint8_t entry_num)
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 5
 
 
-  33:modules/oled_menu.c **** }
- 162              		.loc 1 33 1 is_stmt 0 view .LVU13
- 163 0036 08BD     		pop	{r3, pc}
- 164              	.L8:
- 165              		.align	2
- 166              	.L7:
- 167 0038 00000000 		.word	.LC4
- 168 003c 18000000 		.word	.LC5
- 169 0040 34000000 		.word	.LC6
- 170 0044 4C000000 		.word	.LC7
- 171              		.cfi_endproc
- 172              	.LFE66:
- 174              		.section	.rodata.menu2_2_show.str1.4,"aMS",%progbits,1
- 175              		.align	2
- 176              	.LC8:
- 177 0000 E68C87E5 		.ascii	"\346\214\207\345\256\232\345\260\217\347\220\203\347"
- 177      AE9AE5B0 
- 177      8FE79083 
- 177      E7
- 178 000d 9BAEE6A0 		.ascii	"\233\256\346\240\207\344\275\215\347\275\256:\000"
- 178      87E4BD8D 
- 178      E7BDAE3A 
- 178      00
- 179 001a 0000     		.align	2
- 180              	.LC9:
- 181 001c E4BD8DE7 		.ascii	"\344\275\215\347\275\256:%dcm   \000"
- 181      BDAE3A25 
- 181      64636D20 
- 181      202000
- 182              		.section	.text.menu2_2_show,"ax",%progbits
- 183              		.align	1
- 184              		.global	menu2_2_show
- 185              		.syntax unified
- 186              		.thumb
- 187              		.thumb_func
- 189              	menu2_2_show:
- 190              	.LFB67:
-  34:modules/oled_menu.c **** 
-  35:modules/oled_menu.c **** void menu2_2_show(void)
-  36:modules/oled_menu.c **** {
- 191              		.loc 1 36 1 is_stmt 1 view -0
- 192              		.cfi_startproc
- 193              		@ args = 0, pretend = 0, frame = 0
- 194              		@ frame_needed = 0, uses_anonymous_args = 0
- 195 0000 00B5     		push	{lr}
- 196              	.LCFI2:
- 197              		.cfi_def_cfa_offset 4
- 198              		.cfi_offset 14, -4
- 199 0002 83B0     		sub	sp, sp, #12
- 200              	.LCFI3:
- 201              		.cfi_def_cfa_offset 16
-  37:modules/oled_menu.c **** 	OLED_ShowString(0,  0, "指定小球目标位置:", OLED_8X16);
- 202              		.loc 1 37 2 view .LVU15
- 203 0004 0823     		movs	r3, #8
- 204 0006 094A     		ldr	r2, .L11
- 205 0008 0021     		movs	r1, #0
- 206 000a 0846     		mov	r0, r1
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 6
+ 141:modules/oled_menu.c **** {
+  90              		.loc 1 141 1 is_stmt 1 view -0
+  91              		.cfi_startproc
+  92              		@ args = 0, pretend = 0, frame = 0
+  93              		@ frame_needed = 0, uses_anonymous_args = 0
+  94              		@ link register save eliminated.
+ 142:modules/oled_menu.c ****     return (uint8_t)((entry + 1u) % entry_num);
+  95              		.loc 1 142 5 view .LVU16
+  96              		.loc 1 142 29 is_stmt 0 view .LVU17
+  97 0000 0130     		adds	r0, r0, #1
+  98              	.LVL9:
+  99              		.loc 1 142 35 view .LVU18
+ 100 0002 B0FBF1F3 		udiv	r3, r0, r1
+ 101 0006 01FB1300 		mls	r0, r1, r3, r0
+ 102              	.LVL10:
+ 143:modules/oled_menu.c **** }
+ 103              		.loc 1 143 1 view .LVU19
+ 104 000a C0B2     		uxtb	r0, r0
+ 105 000c 7047     		bx	lr
+ 106              		.cfi_endproc
+ 107              	.LFE2:
+ 109              		.section	.text.menu_scroll_offset,"ax",%progbits
+ 110              		.align	1
+ 111              		.syntax unified
+ 112              		.thumb
+ 113              		.thumb_func
+ 115              	menu_scroll_offset:
+ 116              	.LVL11:
+ 117              	.LFB3:
+ 144:modules/oled_menu.c **** 
+ 145:modules/oled_menu.c **** /**
+ 146:modules/oled_menu.c ****  * @brief 计算列表滚动偏移。
+ 147:modules/oled_menu.c ****  *
+ 148:modules/oled_menu.c ****  * 条目数比屏幕行数多时，光标越过后把窗口上滚，保证光标所在条目可见
+ 149:modules/oled_menu.c ****  *
+ 150:modules/oled_menu.c ****  * @param entry 光标所在条目序号，从 0 开始
+ 151:modules/oled_menu.c ****  * @param entry_num 条目总数
+ 152:modules/oled_menu.c ****  * @return 屏幕第 1 行显示的条目序号
+ 153:modules/oled_menu.c ****  */
+ 154:modules/oled_menu.c **** static uint8_t menu_scroll_offset(uint8_t entry, uint8_t entry_num)
+ 155:modules/oled_menu.c **** {
+ 118              		.loc 1 155 1 is_stmt 1 view -0
+ 119              		.cfi_startproc
+ 120              		@ args = 0, pretend = 0, frame = 0
+ 121              		@ frame_needed = 0, uses_anonymous_args = 0
+ 122              		@ link register save eliminated.
+ 156:modules/oled_menu.c ****     if ((entry_num > MENU_ROW_NUM) && (entry >= MENU_ROW_NUM)) {
+ 123              		.loc 1 156 5 view .LVU21
+ 124              		.loc 1 156 8 is_stmt 0 view .LVU22
+ 125 0000 0429     		cmp	r1, #4
+ 126 0002 06D9     		bls	.L9
+ 127              		.loc 1 156 36 discriminator 1 view .LVU23
+ 128 0004 0328     		cmp	r0, #3
+ 129 0006 01D8     		bhi	.L11
+ 157:modules/oled_menu.c ****         return (uint8_t)(entry - MENU_ROW_NUM + 1u);
+ 158:modules/oled_menu.c ****     }
+ 159:modules/oled_menu.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 6
 
 
- 207 000c FFF7FEFF 		bl	OLED_ShowString
- 208              	.LVL10:
-  38:modules/oled_menu.c **** 	OLED_Printf(0,16,OLED_8X16,"位置:%dcm   ",specified_location_cm);
- 209              		.loc 1 38 2 view .LVU16
- 210 0010 074B     		ldr	r3, .L11+4
- 211 0012 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 212 0014 0093     		str	r3, [sp]
- 213 0016 074B     		ldr	r3, .L11+8
- 214 0018 0822     		movs	r2, #8
- 215 001a 1021     		movs	r1, #16
- 216 001c 0020     		movs	r0, #0
- 217 001e FFF7FEFF 		bl	OLED_Printf
- 218              	.LVL11:
-  39:modules/oled_menu.c **** 	OLED_Update();
- 219              		.loc 1 39 2 view .LVU17
- 220 0022 FFF7FEFF 		bl	OLED_Update
- 221              	.LVL12:
-  40:modules/oled_menu.c **** }
- 222              		.loc 1 40 1 is_stmt 0 view .LVU18
- 223 0026 03B0     		add	sp, sp, #12
- 224              	.LCFI4:
- 225              		.cfi_def_cfa_offset 4
- 226              		@ sp needed
- 227 0028 5DF804FB 		ldr	pc, [sp], #4
- 228              	.L12:
- 229              		.align	2
- 230              	.L11:
- 231 002c 00000000 		.word	.LC8
- 232 0030 00000000 		.word	specified_location_cm
- 233 0034 1C000000 		.word	.LC9
- 234              		.cfi_endproc
- 235              	.LFE67:
- 237              		.section	.rodata.menu3_show.str1.4,"aMS",%progbits,1
- 238              		.align	2
- 239              	.LC10:
- 240 0000 E5B08FE7 		.ascii	"\345\260\217\347\220\203\344\275\215\347\275\256:%d"
- 240      9083E4BD 
- 240      8DE7BDAE 
- 240      3A2564
- 241 000f 636D2020 		.ascii	"cm   \000"
- 241      2000
- 242              		.section	.text.menu3_show,"ax",%progbits
- 243              		.align	1
- 244              		.global	menu3_show
- 245              		.syntax unified
- 246              		.thumb
- 247              		.thumb_func
- 249              	menu3_show:
- 250              	.LFB68:
-  41:modules/oled_menu.c **** 
-  42:modules/oled_menu.c **** void menu3_show(void)
-  43:modules/oled_menu.c **** {
- 251              		.loc 1 43 1 is_stmt 1 view -0
- 252              		.cfi_startproc
- 253              		@ args = 0, pretend = 0, frame = 0
- 254              		@ frame_needed = 0, uses_anonymous_args = 0
- 255 0000 00B5     		push	{lr}
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 7
+ 160:modules/oled_menu.c ****     return 0u;
+ 130              		.loc 1 160 12 view .LVU24
+ 131 0008 0020     		movs	r0, #0
+ 132              	.LVL12:
+ 161:modules/oled_menu.c **** }
+ 133              		.loc 1 161 1 view .LVU25
+ 134 000a 7047     		bx	lr
+ 135              	.LVL13:
+ 136              	.L11:
+ 157:modules/oled_menu.c ****         return (uint8_t)(entry - MENU_ROW_NUM + 1u);
+ 137              		.loc 1 157 9 is_stmt 1 view .LVU26
+ 157:modules/oled_menu.c ****         return (uint8_t)(entry - MENU_ROW_NUM + 1u);
+ 138              		.loc 1 157 16 is_stmt 0 view .LVU27
+ 139 000c 0338     		subs	r0, r0, #3
+ 140              	.LVL14:
+ 157:modules/oled_menu.c ****         return (uint8_t)(entry - MENU_ROW_NUM + 1u);
+ 141              		.loc 1 157 16 view .LVU28
+ 142 000e C0B2     		uxtb	r0, r0
+ 143 0010 7047     		bx	lr
+ 144              	.LVL15:
+ 145              	.L9:
+ 160:modules/oled_menu.c **** }
+ 146              		.loc 1 160 12 view .LVU29
+ 147 0012 0020     		movs	r0, #0
+ 148              	.LVL16:
+ 160:modules/oled_menu.c **** }
+ 149              		.loc 1 160 12 view .LVU30
+ 150 0014 7047     		bx	lr
+ 151              		.cfi_endproc
+ 152              	.LFE3:
+ 154              		.section	.text.menu_target_position_inc,"ax",%progbits
+ 155              		.align	1
+ 156              		.syntax unified
+ 157              		.thumb
+ 158              		.thumb_func
+ 160              	menu_target_position_inc:
+ 161              	.LVL17:
+ 162              	.LFB5:
+ 162:modules/oled_menu.c **** 
+ 163:modules/oled_menu.c **** /**
+ 164:modules/oled_menu.c ****  * @brief 反相显示光标所在行，作为选中效果。
+ 165:modules/oled_menu.c ****  *
+ 166:modules/oled_menu.c ****  * 每帧的页面文都是重新绘制的，所以这里只需要反相当前行，
+ 167:modules/oled_menu.c ****  * 上一帧的反相会被重绘覆盖掉，不需要额外清除。
+ 168:modules/oled_menu.c ****  *
+ 169:modules/oled_menu.c ****  * @param row 行号，从 0 开始，范围 0~3
+ 170:modules/oled_menu.c ****  */
+ 171:modules/oled_menu.c **** static void menu_highlight(uint8_t row)
+ 172:modules/oled_menu.c **** {
+ 173:modules/oled_menu.c ****     OLED_ReverseArea(0, menu_row_to_y(row), MENU_ITEM_WIDTH, MENU_ROW_HEIGHT);
+ 174:modules/oled_menu.c **** }
+ 175:modules/oled_menu.c **** 
+ 176:modules/oled_menu.c **** /**
+ 177:modules/oled_menu.c ****  * @brief 目标位置加一个步长，到上限后保持在上限。
+ 178:modules/oled_menu.c ****  *
+ 179:modules/oled_menu.c ****  * @param position_cm 当前目标位置，单位：cm
+ 180:modules/oled_menu.c ****  * @return 调节后的目标位置，单位：cm
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 7
 
 
- 256              	.LCFI5:
- 257              		.cfi_def_cfa_offset 4
- 258              		.cfi_offset 14, -4
- 259 0002 83B0     		sub	sp, sp, #12
- 260              	.LCFI6:
- 261              		.cfi_def_cfa_offset 16
-  44:modules/oled_menu.c **** 	OLED_Printf(0,0,OLED_8X16,"小球位置:%dcm   ",location_cm);
- 262              		.loc 1 44 2 view .LVU20
- 263 0004 064B     		ldr	r3, .L15
- 264 0006 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 265 0008 0093     		str	r3, [sp]
- 266 000a 064B     		ldr	r3, .L15+4
- 267 000c 0822     		movs	r2, #8
- 268 000e 0021     		movs	r1, #0
- 269 0010 0846     		mov	r0, r1
- 270 0012 FFF7FEFF 		bl	OLED_Printf
- 271              	.LVL13:
-  45:modules/oled_menu.c **** 	OLED_Update();
- 272              		.loc 1 45 2 view .LVU21
- 273 0016 FFF7FEFF 		bl	OLED_Update
- 274              	.LVL14:
-  46:modules/oled_menu.c **** }
- 275              		.loc 1 46 1 is_stmt 0 view .LVU22
- 276 001a 03B0     		add	sp, sp, #12
- 277              	.LCFI7:
- 278              		.cfi_def_cfa_offset 4
- 279              		@ sp needed
- 280 001c 5DF804FB 		ldr	pc, [sp], #4
- 281              	.L16:
- 282              		.align	2
- 283              	.L15:
- 284 0020 00000000 		.word	location_cm
- 285 0024 00000000 		.word	.LC10
- 286              		.cfi_endproc
- 287              	.LFE68:
- 289              		.section	.text.menu1,"ax",%progbits
- 290              		.align	1
- 291              		.global	menu1
- 292              		.syntax unified
- 293              		.thumb
- 294              		.thumb_func
- 296              	menu1:
- 297              	.LFB69:
-  47:modules/oled_menu.c **** 
-  48:modules/oled_menu.c **** int menu1(void)
-  49:modules/oled_menu.c **** {   
- 298              		.loc 1 49 1 is_stmt 1 view -0
- 299              		.cfi_startproc
- 300              		@ args = 0, pretend = 0, frame = 0
- 301              		@ frame_needed = 0, uses_anonymous_args = 0
- 302 0000 00B5     		push	{lr}
- 303              	.LCFI8:
- 304              		.cfi_def_cfa_offset 4
- 305              		.cfi_offset 14, -4
- 306 0002 85B0     		sub	sp, sp, #20
- 307              	.LCFI9:
- 308              		.cfi_def_cfa_offset 24
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 8
+ 181:modules/oled_menu.c ****  */
+ 182:modules/oled_menu.c **** static int8_t menu_target_position_inc(int8_t position_cm)
+ 183:modules/oled_menu.c **** {
+ 163              		.loc 1 183 1 is_stmt 1 view -0
+ 164              		.cfi_startproc
+ 165              		@ args = 0, pretend = 0, frame = 0
+ 166              		@ frame_needed = 0, uses_anonymous_args = 0
+ 167              		@ link register save eliminated.
+ 184:modules/oled_menu.c ****     if (position_cm >= MENU_TARGET_POSITION_MAX_CM) {
+ 168              		.loc 1 184 5 view .LVU32
+ 169              		.loc 1 184 8 is_stmt 0 view .LVU33
+ 170 0000 0928     		cmp	r0, #9
+ 171 0002 02DC     		bgt	.L14
+ 185:modules/oled_menu.c ****         return (int8_t)MENU_TARGET_POSITION_MAX_CM;
+ 186:modules/oled_menu.c ****     }
+ 187:modules/oled_menu.c **** 
+ 188:modules/oled_menu.c ****     return (int8_t)(position_cm + MENU_TARGET_POSITION_STEP_CM);
+ 172              		.loc 1 188 5 is_stmt 1 view .LVU34
+ 173              		.loc 1 188 33 is_stmt 0 view .LVU35
+ 174 0004 0130     		adds	r0, r0, #1
+ 175              	.LVL18:
+ 176              		.loc 1 188 12 view .LVU36
+ 177 0006 40B2     		sxtb	r0, r0
+ 178              	.LVL19:
+ 179              		.loc 1 188 12 view .LVU37
+ 180 0008 7047     		bx	lr
+ 181              	.LVL20:
+ 182              	.L14:
+ 185:modules/oled_menu.c ****         return (int8_t)MENU_TARGET_POSITION_MAX_CM;
+ 183              		.loc 1 185 16 view .LVU38
+ 184 000a 0A20     		movs	r0, #10
+ 185              	.LVL21:
+ 189:modules/oled_menu.c **** }
+ 186              		.loc 1 189 1 view .LVU39
+ 187 000c 7047     		bx	lr
+ 188              		.cfi_endproc
+ 189              	.LFE5:
+ 191              		.section	.text.menu_target_position_dec,"ax",%progbits
+ 192              		.align	1
+ 193              		.syntax unified
+ 194              		.thumb
+ 195              		.thumb_func
+ 197              	menu_target_position_dec:
+ 198              	.LVL22:
+ 199              	.LFB6:
+ 190:modules/oled_menu.c **** 
+ 191:modules/oled_menu.c **** /**
+ 192:modules/oled_menu.c ****  * @brief 目标位置减一个步长，到下限后保持在下限。
+ 193:modules/oled_menu.c ****  *
+ 194:modules/oled_menu.c ****  * @param position_cm 当前目标位置，单位：cm
+ 195:modules/oled_menu.c ****  * @return 调节后的目标位置，单位：cm
+ 196:modules/oled_menu.c ****  */
+ 197:modules/oled_menu.c **** static int8_t menu_target_position_dec(int8_t position_cm)
+ 198:modules/oled_menu.c **** {
+ 200              		.loc 1 198 1 is_stmt 1 view -0
+ 201              		.cfi_startproc
+ 202              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 8
 
 
-  50:modules/oled_menu.c ****     menu1_show();
- 309              		.loc 1 50 5 view .LVU24
- 310 0004 FFF7FEFF 		bl	menu1_show
- 311              	.LVL15:
- 312 0008 2BE0     		b	.L26
- 313              	.L37:
-  51:modules/oled_menu.c ****     
-  52:modules/oled_menu.c ****     while (1)  
-  53:modules/oled_menu.c ****     {
-  54:modules/oled_menu.c ****         KeyNum = Key_GetNum();
-  55:modules/oled_menu.c **** 		if(KeyNum == 1)//上一项
-  56:modules/oled_menu.c **** 		{
-  57:modules/oled_menu.c **** 			flag--;
- 314              		.loc 1 57 4 view .LVU25
- 315              		.loc 1 57 8 is_stmt 0 view .LVU26
- 316 000a 424A     		ldr	r2, .L40
- 317 000c 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
- 318 000e 013B     		subs	r3, r3, #1
- 319 0010 DBB2     		uxtb	r3, r3
- 320 0012 1370     		strb	r3, [r2]
-  58:modules/oled_menu.c **** 			if(flag == 2){flag = 4;}
- 321              		.loc 1 58 4 is_stmt 1 view .LVU27
- 322              		.loc 1 58 6 is_stmt 0 view .LVU28
- 323 0014 022B     		cmp	r3, #2
- 324 0016 05D0     		beq	.L33
- 325              	.L20:
-  59:modules/oled_menu.c **** 			D = 1;//上一项标志
- 326              		.loc 1 59 4 is_stmt 1 view .LVU29
- 327              		.loc 1 59 6 is_stmt 0 view .LVU30
- 328 0018 3F4B     		ldr	r3, .L40+4
- 329 001a 0122     		movs	r2, #1
- 330 001c 1A70     		strb	r2, [r3]
-  60:modules/oled_menu.c **** 			OLED_AnimUpdate();//按下按钮,刷新一次动画效果
- 331              		.loc 1 60 4 is_stmt 1 view .LVU31
- 332 001e FFF7FEFF 		bl	OLED_AnimUpdate
- 333              	.LVL16:
- 334 0022 24E0     		b	.L19
- 335              	.L33:
-  58:modules/oled_menu.c **** 			if(flag == 2){flag = 4;}
- 336              		.loc 1 58 18 discriminator 1 view .LVU32
-  58:modules/oled_menu.c **** 			if(flag == 2){flag = 4;}
- 337              		.loc 1 58 23 is_stmt 0 discriminator 1 view .LVU33
- 338 0024 1346     		mov	r3, r2
- 339 0026 0422     		movs	r2, #4
- 340 0028 1A70     		strb	r2, [r3]
- 341 002a F5E7     		b	.L20
- 342              	.L38:
-  61:modules/oled_menu.c **** 		}
-  62:modules/oled_menu.c **** 		if(KeyNum == 2)//下一项
-  63:modules/oled_menu.c **** 		{
-  64:modules/oled_menu.c **** 			flag++;
- 343              		.loc 1 64 4 is_stmt 1 view .LVU34
- 344              		.loc 1 64 8 is_stmt 0 view .LVU35
- 345 002c 394A     		ldr	r2, .L40
- 346 002e 1378     		ldrb	r3, [r2]	@ zero_extendqisi2
- 347 0030 0133     		adds	r3, r3, #1
- 348 0032 DBB2     		uxtb	r3, r3
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 9
+ 203              		@ frame_needed = 0, uses_anonymous_args = 0
+ 204              		@ link register save eliminated.
+ 199:modules/oled_menu.c ****     if (position_cm <= MENU_TARGET_POSITION_MIN_CM) {
+ 205              		.loc 1 199 5 view .LVU41
+ 206              		.loc 1 199 8 is_stmt 0 view .LVU42
+ 207 0000 10F1090F 		cmn	r0, #9
+ 208 0004 02DB     		blt	.L17
+ 200:modules/oled_menu.c ****         return (int8_t)MENU_TARGET_POSITION_MIN_CM;
+ 201:modules/oled_menu.c ****     }
+ 202:modules/oled_menu.c **** 
+ 203:modules/oled_menu.c ****     return (int8_t)(position_cm - MENU_TARGET_POSITION_STEP_CM);
+ 209              		.loc 1 203 5 is_stmt 1 view .LVU43
+ 210              		.loc 1 203 33 is_stmt 0 view .LVU44
+ 211 0006 0138     		subs	r0, r0, #1
+ 212              	.LVL23:
+ 213              		.loc 1 203 12 view .LVU45
+ 214 0008 40B2     		sxtb	r0, r0
+ 215              	.LVL24:
+ 216              		.loc 1 203 12 view .LVU46
+ 217 000a 7047     		bx	lr
+ 218              	.LVL25:
+ 219              	.L17:
+ 200:modules/oled_menu.c ****         return (int8_t)MENU_TARGET_POSITION_MIN_CM;
+ 220              		.loc 1 200 16 view .LVU47
+ 221 000c 6FF00900 		mvn	r0, #9
+ 222              	.LVL26:
+ 204:modules/oled_menu.c **** }
+ 223              		.loc 1 204 1 view .LVU48
+ 224 0010 7047     		bx	lr
+ 225              		.cfi_endproc
+ 226              	.LFE6:
+ 228              		.section	.text.menu_highlight,"ax",%progbits
+ 229              		.align	1
+ 230              		.syntax unified
+ 231              		.thumb
+ 232              		.thumb_func
+ 234              	menu_highlight:
+ 235              	.LVL27:
+ 236              	.LFB4:
+ 172:modules/oled_menu.c ****     OLED_ReverseArea(0, menu_row_to_y(row), MENU_ITEM_WIDTH, MENU_ROW_HEIGHT);
+ 237              		.loc 1 172 1 is_stmt 1 view -0
+ 238              		.cfi_startproc
+ 239              		@ args = 0, pretend = 0, frame = 0
+ 240              		@ frame_needed = 0, uses_anonymous_args = 0
+ 172:modules/oled_menu.c ****     OLED_ReverseArea(0, menu_row_to_y(row), MENU_ITEM_WIDTH, MENU_ROW_HEIGHT);
+ 241              		.loc 1 172 1 is_stmt 0 view .LVU50
+ 242 0000 08B5     		push	{r3, lr}
+ 243              	.LCFI0:
+ 244              		.cfi_def_cfa_offset 8
+ 245              		.cfi_offset 3, -8
+ 246              		.cfi_offset 14, -4
+ 173:modules/oled_menu.c **** }
+ 247              		.loc 1 173 5 is_stmt 1 view .LVU51
+ 248 0002 FFF7FEFF 		bl	menu_row_to_y
+ 249              	.LVL28:
+ 173:modules/oled_menu.c **** }
+ 250              		.loc 1 173 5 is_stmt 0 view .LVU52
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 9
 
 
- 349 0034 1370     		strb	r3, [r2]
-  65:modules/oled_menu.c **** 			if(flag == 5){flag = 3;}
- 350              		.loc 1 65 4 is_stmt 1 view .LVU36
- 351              		.loc 1 65 6 is_stmt 0 view .LVU37
- 352 0036 052B     		cmp	r3, #5
- 353 0038 05D0     		beq	.L34
- 354              	.L22:
-  66:modules/oled_menu.c **** 			D = 2;//下一项标志
- 355              		.loc 1 66 4 is_stmt 1 view .LVU38
- 356              		.loc 1 66 6 is_stmt 0 view .LVU39
- 357 003a 374B     		ldr	r3, .L40+4
- 358 003c 0222     		movs	r2, #2
- 359 003e 1A70     		strb	r2, [r3]
-  67:modules/oled_menu.c **** 			OLED_AnimUpdate();//按下按钮,刷新一次动画效果
- 360              		.loc 1 67 4 is_stmt 1 view .LVU40
- 361 0040 FFF7FEFF 		bl	OLED_AnimUpdate
- 362              	.LVL17:
- 363 0044 17E0     		b	.L21
- 364              	.L34:
-  65:modules/oled_menu.c **** 			if(flag == 5){flag = 3;}
- 365              		.loc 1 65 18 discriminator 1 view .LVU41
-  65:modules/oled_menu.c **** 			if(flag == 5){flag = 3;}
- 366              		.loc 1 65 23 is_stmt 0 discriminator 1 view .LVU42
- 367 0046 1346     		mov	r3, r2
- 368 0048 0322     		movs	r2, #3
- 369 004a 1A70     		strb	r2, [r3]
- 370 004c F5E7     		b	.L22
- 371              	.L24:
-  68:modules/oled_menu.c **** 		}
-  69:modules/oled_menu.c **** 		if(KeyNum == 3)//确认
-  70:modules/oled_menu.c **** 		{
-  71:modules/oled_menu.c **** 			OLED_Clear();
-  72:modules/oled_menu.c **** 			OLED_Update();
-  73:modules/oled_menu.c **** 			OLED_AnimUpdate();//按下按钮,刷新一次动画效果
-  74:modules/oled_menu.c **** 			return flag;
-  75:modules/oled_menu.c **** 		}
-  76:modules/oled_menu.c **** 
-  77:modules/oled_menu.c ****         switch(flag)
-  78:modules/oled_menu.c **** 		{
-  79:modules/oled_menu.c **** 			case 3:
-  80:modules/oled_menu.c **** 			{
-  81:modules/oled_menu.c **** 				//再次显示,解决乱码和闪烁问题(确保反相前是亮的状态)
-  82:modules/oled_menu.c **** 				menu1_show();
- 372              		.loc 1 82 5 is_stmt 1 view .LVU43
- 373 004e FFF7FEFF 		bl	menu1_show
- 374              	.LVL18:
-  83:modules/oled_menu.c **** 				if(D==2){OLED_Animation(0,16,64,16,0,32,64,16);}
- 375              		.loc 1 83 5 view .LVU44
- 376              		.loc 1 83 9 is_stmt 0 view .LVU45
- 377 0052 314B     		ldr	r3, .L40+4
- 378 0054 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 379              		.loc 1 83 7 view .LVU46
- 380 0056 022B     		cmp	r3, #2
- 381 0058 2DD0     		beq	.L35
- 382              	.L27:
-  84:modules/oled_menu.c **** 				if(D==1){OLED_Animation(0,48,64,16,0,32,64,16);}			
- 383              		.loc 1 84 5 is_stmt 1 view .LVU47
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 10
+ 251 0006 0146     		mov	r1, r0
+ 173:modules/oled_menu.c **** }
+ 252              		.loc 1 173 5 discriminator 1 view .LVU53
+ 253 0008 1023     		movs	r3, #16
+ 254 000a 8022     		movs	r2, #128
+ 255 000c 0020     		movs	r0, #0
+ 256 000e FFF7FEFF 		bl	OLED_ReverseArea
+ 257              	.LVL29:
+ 174:modules/oled_menu.c **** 
+ 258              		.loc 1 174 1 view .LVU54
+ 259 0012 08BD     		pop	{r3, pc}
+ 260              		.cfi_endproc
+ 261              	.LFE4:
+ 263              		.section	.text.menu1_show,"ax",%progbits
+ 264              		.align	1
+ 265              		.syntax unified
+ 266              		.thumb
+ 267              		.thumb_func
+ 269              	menu1_show:
+ 270              	.LVL30:
+ 271              	.LFB7:
+ 205:modules/oled_menu.c **** 
+ 206:modules/oled_menu.c **** /**
+ 207:modules/oled_menu.c ****  * @brief 绘制一级菜单页面文本。
+ 208:modules/oled_menu.c ****  */
+ 209:modules/oled_menu.c **** static void menu1_show(uint8_t entry)
+ 210:modules/oled_menu.c **** {
+ 272              		.loc 1 210 1 is_stmt 1 view -0
+ 273              		.cfi_startproc
+ 274              		@ args = 0, pretend = 0, frame = 0
+ 275              		@ frame_needed = 0, uses_anonymous_args = 0
+ 276              		.loc 1 210 1 is_stmt 0 view .LVU56
+ 277 0000 38B5     		push	{r3, r4, r5, lr}
+ 278              	.LCFI1:
+ 279              		.cfi_def_cfa_offset 16
+ 280              		.cfi_offset 3, -16
+ 281              		.cfi_offset 4, -12
+ 282              		.cfi_offset 5, -8
+ 283              		.cfi_offset 14, -4
+ 284 0002 0546     		mov	r5, r0
+ 211:modules/oled_menu.c ****     OLED_Clear();
+ 285              		.loc 1 211 5 is_stmt 1 view .LVU57
+ 286 0004 FFF7FEFF 		bl	OLED_Clear
+ 287              	.LVL31:
+ 212:modules/oled_menu.c ****     uint8_t row;
+ 288              		.loc 1 212 5 view .LVU58
+ 213:modules/oled_menu.c **** 
+ 214:modules/oled_menu.c ****     for (row = 0u; row < MENU_ROW_NUM; row++) {
+ 289              		.loc 1 214 5 view .LVU59
+ 290              		.loc 1 214 14 is_stmt 0 view .LVU60
+ 291 0008 0024     		movs	r4, #0
+ 292              		.loc 1 214 5 view .LVU61
+ 293 000a 0CE0     		b	.L21
+ 294              	.LVL32:
+ 295              	.L22:
+ 215:modules/oled_menu.c ****         OLED_ShowString(0, menu_row_to_y(row), kMenu1Text[row], OLED_8X16);
+ 296              		.loc 1 215 9 is_stmt 1 view .LVU62
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 10
 
 
- 384              		.loc 1 84 9 is_stmt 0 view .LVU48
- 385 005a 2F4B     		ldr	r3, .L40+4
- 386 005c 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 387              		.loc 1 84 7 view .LVU49
- 388 005e 012B     		cmp	r3, #1
- 389 0060 35D0     		beq	.L36
- 390              	.L26:
-  52:modules/oled_menu.c ****     {
- 391              		.loc 1 52 5 is_stmt 1 view .LVU50
-  54:modules/oled_menu.c **** 		if(KeyNum == 1)//上一项
- 392              		.loc 1 54 9 view .LVU51
-  54:modules/oled_menu.c **** 		if(KeyNum == 1)//上一项
- 393              		.loc 1 54 18 is_stmt 0 view .LVU52
- 394 0062 FFF7FEFF 		bl	Key_GetNum
- 395              	.LVL19:
-  54:modules/oled_menu.c **** 		if(KeyNum == 1)//上一项
- 396              		.loc 1 54 16 discriminator 1 view .LVU53
- 397 0066 2D4B     		ldr	r3, .L40+8
- 398 0068 1870     		strb	r0, [r3]
-  55:modules/oled_menu.c **** 		{
- 399              		.loc 1 55 3 is_stmt 1 view .LVU54
-  55:modules/oled_menu.c **** 		{
- 400              		.loc 1 55 5 is_stmt 0 view .LVU55
- 401 006a 0128     		cmp	r0, #1
- 402 006c CDD0     		beq	.L37
- 403              	.L19:
-  62:modules/oled_menu.c **** 		{
- 404              		.loc 1 62 3 is_stmt 1 view .LVU56
-  62:modules/oled_menu.c **** 		{
- 405              		.loc 1 62 13 is_stmt 0 view .LVU57
- 406 006e 2B4B     		ldr	r3, .L40+8
- 407 0070 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
-  62:modules/oled_menu.c **** 		{
- 408              		.loc 1 62 5 view .LVU58
- 409 0072 022B     		cmp	r3, #2
- 410 0074 DAD0     		beq	.L38
- 411              	.L21:
-  69:modules/oled_menu.c **** 		{
- 412              		.loc 1 69 3 is_stmt 1 view .LVU59
-  69:modules/oled_menu.c **** 		{
- 413              		.loc 1 69 13 is_stmt 0 view .LVU60
- 414 0076 294B     		ldr	r3, .L40+8
- 415 0078 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
-  69:modules/oled_menu.c **** 		{
- 416              		.loc 1 69 5 view .LVU61
- 417 007a 032B     		cmp	r3, #3
- 418 007c 3FD0     		beq	.L31
-  77:modules/oled_menu.c **** 		{
- 419              		.loc 1 77 9 is_stmt 1 view .LVU62
- 420 007e 254B     		ldr	r3, .L40
- 421 0080 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 422 0082 032B     		cmp	r3, #3
- 423 0084 E3D0     		beq	.L24
- 424 0086 042B     		cmp	r3, #4
- 425 0088 EBD1     		bne	.L26
-  85:modules/oled_menu.c **** 				break;
-  86:modules/oled_menu.c **** 			}
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 11
+ 297 000c 2046     		mov	r0, r4
+ 298 000e FFF7FEFF 		bl	menu_row_to_y
+ 299              	.LVL33:
+ 300 0012 0146     		mov	r1, r0
+ 301              		.loc 1 215 9 is_stmt 0 discriminator 1 view .LVU63
+ 302 0014 0823     		movs	r3, #8
+ 303 0016 084A     		ldr	r2, .L24
+ 304 0018 52F82420 		ldr	r2, [r2, r4, lsl #2]
+ 305 001c 0020     		movs	r0, #0
+ 306 001e FFF7FEFF 		bl	OLED_ShowString
+ 307              	.LVL34:
+ 214:modules/oled_menu.c ****         OLED_ShowString(0, menu_row_to_y(row), kMenu1Text[row], OLED_8X16);
+ 308              		.loc 1 214 43 is_stmt 1 discriminator 3 view .LVU64
+ 309 0022 0134     		adds	r4, r4, #1
+ 310              	.LVL35:
+ 214:modules/oled_menu.c ****         OLED_ShowString(0, menu_row_to_y(row), kMenu1Text[row], OLED_8X16);
+ 311              		.loc 1 214 43 is_stmt 0 discriminator 3 view .LVU65
+ 312 0024 E4B2     		uxtb	r4, r4
+ 313              	.LVL36:
+ 314              	.L21:
+ 214:modules/oled_menu.c ****         OLED_ShowString(0, menu_row_to_y(row), kMenu1Text[row], OLED_8X16);
+ 315              		.loc 1 214 24 is_stmt 1 discriminator 1 view .LVU66
+ 316 0026 032C     		cmp	r4, #3
+ 317 0028 F0D9     		bls	.L22
+ 216:modules/oled_menu.c ****     }
+ 217:modules/oled_menu.c **** 
+ 218:modules/oled_menu.c ****     menu_highlight((uint8_t)(MENU1_FIRST_ROW + entry));
+ 318              		.loc 1 218 5 view .LVU67
+ 319 002a A81C     		adds	r0, r5, #2
+ 320 002c C0B2     		uxtb	r0, r0
+ 321 002e FFF7FEFF 		bl	menu_highlight
+ 322              	.LVL37:
+ 219:modules/oled_menu.c ****     OLED_Update();
+ 323              		.loc 1 219 5 view .LVU68
+ 324 0032 FFF7FEFF 		bl	OLED_Update
+ 325              	.LVL38:
+ 220:modules/oled_menu.c **** }
+ 326              		.loc 1 220 1 is_stmt 0 view .LVU69
+ 327 0036 38BD     		pop	{r3, r4, r5, pc}
+ 328              	.LVL39:
+ 329              	.L25:
+ 330              		.loc 1 220 1 view .LVU70
+ 331              		.align	2
+ 332              	.L24:
+ 333 0038 00000000 		.word	kMenu1Text
+ 334              		.cfi_endproc
+ 335              	.LFE7:
+ 337              		.section	.text.menu1_select,"ax",%progbits
+ 338              		.align	1
+ 339              		.syntax unified
+ 340              		.thumb
+ 341              		.thumb_func
+ 343              	menu1_select:
+ 344              	.LFB12:
+ 221:modules/oled_menu.c **** 
+ 222:modules/oled_menu.c **** /**
+ 223:modules/oled_menu.c ****  * @brief 绘制基础部分二级菜单页面。
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 11
 
 
-  87:modules/oled_menu.c **** 			case 4:
-  88:modules/oled_menu.c **** 			{
-  89:modules/oled_menu.c **** 				//再次显示,解决乱码和闪烁问题(确保反相前是亮的状态)
-  90:modules/oled_menu.c **** 				menu1_show();
- 426              		.loc 1 90 5 view .LVU63
- 427 008a FFF7FEFF 		bl	menu1_show
- 428              	.LVL20:
-  91:modules/oled_menu.c **** 				if(D==2){OLED_Animation(0,32,64,16,0,48,64,16);}
- 429              		.loc 1 91 5 view .LVU64
- 430              		.loc 1 91 9 is_stmt 0 view .LVU65
- 431 008e 224B     		ldr	r3, .L40+4
- 432 0090 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 433              		.loc 1 91 7 view .LVU66
- 434 0092 022B     		cmp	r3, #2
- 435 0094 27D0     		beq	.L39
- 436              	.L29:
-  92:modules/oled_menu.c **** 				if(D==1){OLED_Animation(0,0 ,64,16,0,48,64,16);}
- 437              		.loc 1 92 5 is_stmt 1 view .LVU67
- 438              		.loc 1 92 9 is_stmt 0 view .LVU68
- 439 0096 204B     		ldr	r3, .L40+4
- 440 0098 1B78     		ldrb	r3, [r3]	@ zero_extendqisi2
- 441              		.loc 1 92 7 view .LVU69
- 442 009a 012B     		cmp	r3, #1
- 443 009c E1D1     		bne	.L26
- 444              		.loc 1 92 14 is_stmt 1 discriminator 1 view .LVU70
- 445 009e 1023     		movs	r3, #16
- 446 00a0 0393     		str	r3, [sp, #12]
- 447 00a2 4022     		movs	r2, #64
- 448 00a4 0292     		str	r2, [sp, #8]
- 449 00a6 3021     		movs	r1, #48
- 450 00a8 0191     		str	r1, [sp, #4]
- 451 00aa 0020     		movs	r0, #0
- 452 00ac 0090     		str	r0, [sp]
- 453 00ae 0146     		mov	r1, r0
- 454 00b0 FFF7FEFF 		bl	OLED_Animation
- 455              	.LVL21:
- 456 00b4 D5E7     		b	.L26
- 457              	.L35:
-  83:modules/oled_menu.c **** 				if(D==1){OLED_Animation(0,48,64,16,0,32,64,16);}			
- 458              		.loc 1 83 14 discriminator 1 view .LVU71
- 459 00b6 1021     		movs	r1, #16
- 460 00b8 0391     		str	r1, [sp, #12]
- 461 00ba 4022     		movs	r2, #64
- 462 00bc 0292     		str	r2, [sp, #8]
- 463 00be 2023     		movs	r3, #32
- 464 00c0 0193     		str	r3, [sp, #4]
- 465 00c2 0020     		movs	r0, #0
- 466 00c4 0090     		str	r0, [sp]
- 467 00c6 0B46     		mov	r3, r1
- 468 00c8 FFF7FEFF 		bl	OLED_Animation
- 469              	.LVL22:
- 470 00cc C5E7     		b	.L27
- 471              	.L36:
-  84:modules/oled_menu.c **** 				break;
- 472              		.loc 1 84 14 discriminator 1 view .LVU72
- 473 00ce 1023     		movs	r3, #16
- 474 00d0 0393     		str	r3, [sp, #12]
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 12
+ 224:modules/oled_menu.c ****  *
+ 225:modules/oled_menu.c ****  * @param offset 滚动偏移，屏幕第 1 行显示的条目序号
+ 226:modules/oled_menu.c ****  * @param entry 光标所在条目序号，从 0 开始
+ 227:modules/oled_menu.c ****  */
+ 228:modules/oled_menu.c **** static void menu2_basic_show(uint8_t offset, uint8_t entry)
+ 229:modules/oled_menu.c **** {
+ 230:modules/oled_menu.c ****     OLED_Clear();
+ 231:modules/oled_menu.c ****     uint8_t row;
+ 232:modules/oled_menu.c **** 
+ 233:modules/oled_menu.c ****     for (row = 0u; row < MENU_ROW_NUM; row++) {
+ 234:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ 235:modules/oled_menu.c **** 
+ 236:modules/oled_menu.c ****         if (item < MENU2_BASIC_TASK_NUM) {
+ 237:modules/oled_menu.c ****             OLED_ShowString(0, menu_row_to_y(row), kMenu2BasicItem[item].text, OLED_8X16);
+ 238:modules/oled_menu.c ****         } else {
+ 239:modules/oled_menu.c ****             OLED_ShowString(0, menu_row_to_y(row), MENU_BACK_TEXT, OLED_8X16);
+ 240:modules/oled_menu.c ****         }
+ 241:modules/oled_menu.c ****     }
+ 242:modules/oled_menu.c **** 
+ 243:modules/oled_menu.c ****     menu_highlight((uint8_t)(entry - offset));
+ 244:modules/oled_menu.c ****     OLED_Update();
+ 245:modules/oled_menu.c **** }
+ 246:modules/oled_menu.c **** 
+ 247:modules/oled_menu.c **** /**
+ 248:modules/oled_menu.c ****  * @brief 绘制发挥部分二级菜单页面。
+ 249:modules/oled_menu.c ****  *
+ 250:modules/oled_menu.c ****  * @param entry 光标所在条目序号，从 0 开始
+ 251:modules/oled_menu.c ****  */
+ 252:modules/oled_menu.c **** static void menu2_performance_show(uint8_t entry)
+ 253:modules/oled_menu.c **** {
+ 254:modules/oled_menu.c ****     OLED_Clear();
+ 255:modules/oled_menu.c ****     /* 目标位置就显示在第 1 行，光标停在这一行按确认即开始执行任务 */
+ 256:modules/oled_menu.c ****     OLED_Printf(0, menu_row_to_y(0u), OLED_8X16, "指定位置:%dcm   ", specified_location_cm);
+ 257:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(1u), MENU_BACK_TEXT, OLED_8X16);
+ 258:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(2u), "  +1cm          ", OLED_8X16);
+ 259:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(3u), "  -1cm          ", OLED_8X16);
+ 260:modules/oled_menu.c **** 
+ 261:modules/oled_menu.c ****     menu_highlight(entry);
+ 262:modules/oled_menu.c ****     OLED_Update();
+ 263:modules/oled_menu.c **** }
+ 264:modules/oled_menu.c **** 
+ 265:modules/oled_menu.c **** /**
+ 266:modules/oled_menu.c ****  * @brief 绘制三级菜单页面文本。
+ 267:modules/oled_menu.c ****  */
+ 268:modules/oled_menu.c **** static void menu3_show(void)
+ 269:modules/oled_menu.c **** {
+ 270:modules/oled_menu.c ****     OLED_Clear();
+ 271:modules/oled_menu.c ****     OLED_Printf(0, 0, OLED_8X16, "小球位置:%dcm   ", location_cm);
+ 272:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(MENU3_BACK_HINT_ROW), MENU3_BACK_HINT_TEXT, OLED_8X16);
+ 273:modules/oled_menu.c ****     menu_highlight(MENU3_BACK_HINT_ROW);
+ 274:modules/oled_menu.c ****     OLED_Update();
+ 275:modules/oled_menu.c **** }
+ 276:modules/oled_menu.c **** 
+ 277:modules/oled_menu.c **** static void menu3_run(Menu_Task_e task)
+ 278:modules/oled_menu.c **** {
+ 279:modules/oled_menu.c ****     uint8_t key_num;
+ 280:modules/oled_menu.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 12
 
 
- 475 00d2 4022     		movs	r2, #64
- 476 00d4 0292     		str	r2, [sp, #8]
- 477 00d6 2021     		movs	r1, #32
- 478 00d8 0191     		str	r1, [sp, #4]
- 479 00da 0020     		movs	r0, #0
- 480 00dc 0090     		str	r0, [sp]
- 481 00de 3021     		movs	r1, #48
- 482 00e0 FFF7FEFF 		bl	OLED_Animation
- 483              	.LVL23:
- 484 00e4 BDE7     		b	.L26
- 485              	.L39:
-  91:modules/oled_menu.c **** 				if(D==1){OLED_Animation(0,0 ,64,16,0,48,64,16);}
- 486              		.loc 1 91 14 discriminator 1 view .LVU73
- 487 00e6 1023     		movs	r3, #16
- 488 00e8 0393     		str	r3, [sp, #12]
- 489 00ea 4022     		movs	r2, #64
- 490 00ec 0292     		str	r2, [sp, #8]
- 491 00ee 3021     		movs	r1, #48
- 492 00f0 0191     		str	r1, [sp, #4]
- 493 00f2 0020     		movs	r0, #0
- 494 00f4 0090     		str	r0, [sp]
- 495 00f6 2021     		movs	r1, #32
- 496 00f8 FFF7FEFF 		bl	OLED_Animation
- 497              	.LVL24:
- 498 00fc CBE7     		b	.L29
- 499              	.L31:
-  71:modules/oled_menu.c **** 			OLED_Update();
- 500              		.loc 1 71 4 view .LVU74
- 501 00fe FFF7FEFF 		bl	OLED_Clear
- 502              	.LVL25:
-  72:modules/oled_menu.c **** 			OLED_AnimUpdate();//按下按钮,刷新一次动画效果
- 503              		.loc 1 72 4 view .LVU75
- 504 0102 FFF7FEFF 		bl	OLED_Update
- 505              	.LVL26:
-  73:modules/oled_menu.c **** 			return flag;
- 506              		.loc 1 73 4 view .LVU76
- 507 0106 FFF7FEFF 		bl	OLED_AnimUpdate
- 508              	.LVL27:
-  74:modules/oled_menu.c **** 		}
- 509              		.loc 1 74 4 view .LVU77
-  74:modules/oled_menu.c **** 		}
- 510              		.loc 1 74 11 is_stmt 0 view .LVU78
- 511 010a 024B     		ldr	r3, .L40
- 512 010c 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
-  93:modules/oled_menu.c **** 				break;
-  94:modules/oled_menu.c **** 			}
-  95:modules/oled_menu.c ****         }
-  96:modules/oled_menu.c ****     }
-  97:modules/oled_menu.c **** }
- 513              		.loc 1 97 1 view .LVU79
- 514 010e 05B0     		add	sp, sp, #20
- 515              	.LCFI10:
- 516              		.cfi_def_cfa_offset 4
- 517              		@ sp needed
- 518 0110 5DF804FB 		ldr	pc, [sp], #4
- 519              	.L41:
- 520              		.align	2
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 13
+ 281:modules/oled_menu.c ****     while (1) {
+ 282:modules/oled_menu.c ****         switch (task) {
+ 283:modules/oled_menu.c ****         case MENU_TASK_STABLE_POSITION:
+ 284:modules/oled_menu.c ****             /* TODO: 在这里填入"定点稳定控制"的任务执行函数 */
+ 285:modules/oled_menu.c ****             break;
+ 286:modules/oled_menu.c **** 
+ 287:modules/oled_menu.c ****         case MENU_TASK_BACK_AND_FORTH:
+ 288:modules/oled_menu.c ****             /* TODO: 在这里填入"折返运动与时效"的任务执行函数 */
+ 289:modules/oled_menu.c ****             break;
+ 290:modules/oled_menu.c **** 
+ 291:modules/oled_menu.c ****         case MENU_TASK_CONTINUOUS_TRACK:
+ 292:modules/oled_menu.c ****             /* TODO: 在这里填入"连续跟踪运动"的任务执行函数 */
+ 293:modules/oled_menu.c ****             break;
+ 294:modules/oled_menu.c **** 
+ 295:modules/oled_menu.c ****         case MENU_TASK_ANTI_DISTURBANCE:
+ 296:modules/oled_menu.c ****             /* TODO: 在这里填入"抗干扰能力"的任务执行函数 */
+ 297:modules/oled_menu.c ****             break;
+ 298:modules/oled_menu.c **** 
+ 299:modules/oled_menu.c ****         case MENU_TASK_TARGET_POSITION:
+ 300:modules/oled_menu.c ****             /* TODO: 在这里填入"指定小球位置"的任务执行函数 */
+ 301:modules/oled_menu.c ****             break;
+ 302:modules/oled_menu.c **** 
+ 303:modules/oled_menu.c ****         default:
+ 304:modules/oled_menu.c ****             /* 未定义的任务编号：不执行任何动作，只显示小球位置 */
+ 305:modules/oled_menu.c ****             break;
+ 306:modules/oled_menu.c ****         }
+ 307:modules/oled_menu.c **** 
+ 308:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 309:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY3) {
+ 310:modules/oled_menu.c ****             return;                 /* 上一步：回到二级菜单 */
+ 311:modules/oled_menu.c ****         }
+ 312:modules/oled_menu.c **** 
+ 313:modules/oled_menu.c ****         menu3_show();
+ 314:modules/oled_menu.c ****     }
+ 315:modules/oled_menu.c **** }
+ 316:modules/oled_menu.c **** 
+ 317:modules/oled_menu.c **** /**
+ 318:modules/oled_menu.c ****  * @brief 一级菜单循环：显示菜单并等待确认。
+ 319:modules/oled_menu.c ****  *
+ 320:modules/oled_menu.c ****  * @return 选中的条目序号 MENU1_ENTRY_BASIC / MENU1_ENTRY_PERFORMANCE
+ 321:modules/oled_menu.c ****  */
+ 322:modules/oled_menu.c **** static uint8_t menu1_select(void)
+ 323:modules/oled_menu.c **** {
+ 345              		.loc 1 323 1 is_stmt 1 view -0
+ 346              		.cfi_startproc
+ 347              		@ args = 0, pretend = 0, frame = 0
+ 348              		@ frame_needed = 0, uses_anonymous_args = 0
+ 349 0000 10B5     		push	{r4, lr}
+ 350              	.LCFI2:
+ 351              		.cfi_def_cfa_offset 8
+ 352              		.cfi_offset 4, -8
+ 353              		.cfi_offset 14, -4
+ 354 0002 09E0     		b	.L30
+ 355              	.LVL40:
+ 356              	.L34:
+ 324:modules/oled_menu.c ****     uint8_t key_num;
+ 325:modules/oled_menu.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 13
 
 
- 521              	.L40:
- 522 0114 00000000 		.word	flag
- 523 0118 00000000 		.word	D
- 524 011c 00000000 		.word	KeyNum
- 525              		.cfi_endproc
- 526              	.LFE69:
- 528              		.global	flag
- 529              		.section	.data.flag,"aw"
- 532              	flag:
- 533 0000 03       		.byte	3
- 534              		.global	location_cm
- 535              		.section	.bss.location_cm,"aw",%nobits
- 538              	location_cm:
- 539 0000 00       		.space	1
- 540              		.global	specified_location_cm
- 541              		.section	.bss.specified_location_cm,"aw",%nobits
- 544              	specified_location_cm:
- 545 0000 00       		.space	1
- 546              		.global	D
- 547              		.section	.data.D,"aw"
- 550              	D:
- 551 0000 02       		.byte	2
- 552              		.global	KeyNum
- 553              		.section	.bss.KeyNum,"aw",%nobits
- 556              	KeyNum:
- 557 0000 00       		.space	1
- 558              		.text
- 559              	.Letext0:
- 560              		.file 2 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
- 561              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
- 562              		.file 4 "modules/oled.h"
- 563              		.file 5 "modules/key.h"
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s 			page 14
+ 326:modules/oled_menu.c ****     while (1) {
+ 327:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 328:modules/oled_menu.c **** 
+ 329:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY3) {
+ 330:modules/oled_menu.c ****             return menu1_cursor;
+ 331:modules/oled_menu.c ****         }
+ 332:modules/oled_menu.c **** 
+ 333:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY1) {
+ 334:modules/oled_menu.c ****             menu1_cursor = menu_move_prev(menu1_cursor, MENU1_ENTRY_NUM);
+ 357              		.loc 1 334 13 view .LVU72
+ 358              		.loc 1 334 28 is_stmt 0 view .LVU73
+ 359 0004 0D4C     		ldr	r4, .L35
+ 360 0006 0221     		movs	r1, #2
+ 361 0008 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 362              	.LVL41:
+ 363              		.loc 1 334 28 view .LVU74
+ 364 000a FFF7FEFF 		bl	menu_move_prev
+ 365              	.LVL42:
+ 366              		.loc 1 334 26 discriminator 1 view .LVU75
+ 367 000e 2070     		strb	r0, [r4]
+ 368              	.L29:
+ 335:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY2) {
+ 336:modules/oled_menu.c ****             menu1_cursor = menu_move_next(menu1_cursor, MENU1_ENTRY_NUM);
+ 337:modules/oled_menu.c ****         } else {
+ 338:modules/oled_menu.c ****             /* 无按键按下，保持当前光标位置 */
+ 339:modules/oled_menu.c ****         }
+ 369              		.loc 1 339 9 is_stmt 1 view .LVU76
+ 340:modules/oled_menu.c **** 
+ 341:modules/oled_menu.c ****         menu1_show(menu1_cursor);
+ 370              		.loc 1 341 9 view .LVU77
+ 371 0010 0A4B     		ldr	r3, .L35
+ 372 0012 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 373 0014 FFF7FEFF 		bl	menu1_show
+ 374              	.LVL43:
+ 326:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 375              		.loc 1 326 11 view .LVU78
+ 376              	.L30:
+ 324:modules/oled_menu.c **** 
+ 377              		.loc 1 324 5 view .LVU79
+ 326:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 378              		.loc 1 326 5 view .LVU80
+ 327:modules/oled_menu.c **** 
+ 379              		.loc 1 327 9 view .LVU81
+ 327:modules/oled_menu.c **** 
+ 380              		.loc 1 327 19 is_stmt 0 view .LVU82
+ 381 0018 FFF7FEFF 		bl	Key_GetNum
+ 382              	.LVL44:
+ 329:modules/oled_menu.c ****             return menu1_cursor;
+ 383              		.loc 1 329 9 is_stmt 1 view .LVU83
+ 329:modules/oled_menu.c ****             return menu1_cursor;
+ 384              		.loc 1 329 12 is_stmt 0 view .LVU84
+ 385 001c 0328     		cmp	r0, #3
+ 386 001e 0AD0     		beq	.L32
+ 333:modules/oled_menu.c ****             menu1_cursor = menu_move_prev(menu1_cursor, MENU1_ENTRY_NUM);
+ 387              		.loc 1 333 9 is_stmt 1 view .LVU85
+ 333:modules/oled_menu.c ****             menu1_cursor = menu_move_prev(menu1_cursor, MENU1_ENTRY_NUM);
+ 388              		.loc 1 333 12 is_stmt 0 view .LVU86
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 14
+
+
+ 389 0020 0128     		cmp	r0, #1
+ 390 0022 EFD0     		beq	.L34
+ 335:modules/oled_menu.c ****             menu1_cursor = menu_move_next(menu1_cursor, MENU1_ENTRY_NUM);
+ 391              		.loc 1 335 16 is_stmt 1 view .LVU87
+ 335:modules/oled_menu.c ****             menu1_cursor = menu_move_next(menu1_cursor, MENU1_ENTRY_NUM);
+ 392              		.loc 1 335 19 is_stmt 0 view .LVU88
+ 393 0024 0228     		cmp	r0, #2
+ 394 0026 F3D1     		bne	.L29
+ 336:modules/oled_menu.c ****         } else {
+ 395              		.loc 1 336 13 is_stmt 1 view .LVU89
+ 336:modules/oled_menu.c ****         } else {
+ 396              		.loc 1 336 28 is_stmt 0 view .LVU90
+ 397 0028 044C     		ldr	r4, .L35
+ 398 002a 0221     		movs	r1, #2
+ 399 002c 2078     		ldrb	r0, [r4]	@ zero_extendqisi2
+ 400              	.LVL45:
+ 336:modules/oled_menu.c ****         } else {
+ 401              		.loc 1 336 28 view .LVU91
+ 402 002e FFF7FEFF 		bl	menu_move_next
+ 403              	.LVL46:
+ 336:modules/oled_menu.c ****         } else {
+ 404              		.loc 1 336 26 discriminator 1 view .LVU92
+ 405 0032 2070     		strb	r0, [r4]
+ 406 0034 ECE7     		b	.L29
+ 407              	.LVL47:
+ 408              	.L32:
+ 330:modules/oled_menu.c ****         }
+ 409              		.loc 1 330 13 is_stmt 1 view .LVU93
+ 330:modules/oled_menu.c ****         }
+ 410              		.loc 1 330 20 is_stmt 0 discriminator 1 view .LVU94
+ 411 0036 014B     		ldr	r3, .L35
+ 412 0038 1878     		ldrb	r0, [r3]	@ zero_extendqisi2
+ 413              	.LVL48:
+ 342:modules/oled_menu.c ****     }
+ 343:modules/oled_menu.c **** }
+ 414              		.loc 1 343 1 view .LVU95
+ 415 003a 10BD     		pop	{r4, pc}
+ 416              	.L36:
+ 417              		.align	2
+ 418              	.L35:
+ 419 003c 00000000 		.word	menu1_cursor
+ 420              		.cfi_endproc
+ 421              	.LFE12:
+ 423              		.section	.rodata.menu2_basic_show.str1.4,"aMS",%progbits,1
+ 424              		.align	2
+ 425              	.LC0:
+ 426 0000 3C2DE4B8 		.ascii	"<-\344\270\212\344\270\200\346\255\245        \000"
+ 426      8AE4B880 
+ 426      E6ADA520 
+ 426      20202020 
+ 426      20202000 
+ 427              		.section	.text.menu2_basic_show,"ax",%progbits
+ 428              		.align	1
+ 429              		.syntax unified
+ 430              		.thumb
+ 431              		.thumb_func
+ 433              	menu2_basic_show:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 15
+
+
+ 434              	.LVL49:
+ 435              	.LFB8:
+ 229:modules/oled_menu.c ****     OLED_Clear();
+ 436              		.loc 1 229 1 is_stmt 1 view -0
+ 437              		.cfi_startproc
+ 438              		@ args = 0, pretend = 0, frame = 0
+ 439              		@ frame_needed = 0, uses_anonymous_args = 0
+ 229:modules/oled_menu.c ****     OLED_Clear();
+ 440              		.loc 1 229 1 is_stmt 0 view .LVU97
+ 441 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 442              	.LCFI3:
+ 443              		.cfi_def_cfa_offset 24
+ 444              		.cfi_offset 3, -24
+ 445              		.cfi_offset 4, -20
+ 446              		.cfi_offset 5, -16
+ 447              		.cfi_offset 6, -12
+ 448              		.cfi_offset 7, -8
+ 449              		.cfi_offset 14, -4
+ 450 0002 0646     		mov	r6, r0
+ 451 0004 0F46     		mov	r7, r1
+ 230:modules/oled_menu.c ****     uint8_t row;
+ 452              		.loc 1 230 5 is_stmt 1 view .LVU98
+ 453 0006 FFF7FEFF 		bl	OLED_Clear
+ 454              	.LVL50:
+ 231:modules/oled_menu.c **** 
+ 455              		.loc 1 231 5 view .LVU99
+ 233:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ 456              		.loc 1 233 5 view .LVU100
+ 233:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ 457              		.loc 1 233 14 is_stmt 0 view .LVU101
+ 458 000a 0024     		movs	r4, #0
+ 233:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ 459              		.loc 1 233 5 view .LVU102
+ 460 000c 0AE0     		b	.L38
+ 461              	.LVL51:
+ 462              	.L39:
+ 463              	.LBB2:
+ 239:modules/oled_menu.c ****         }
+ 464              		.loc 1 239 13 is_stmt 1 view .LVU103
+ 465 000e 2046     		mov	r0, r4
+ 466 0010 FFF7FEFF 		bl	menu_row_to_y
+ 467              	.LVL52:
+ 468 0014 0146     		mov	r1, r0
+ 239:modules/oled_menu.c ****         }
+ 469              		.loc 1 239 13 is_stmt 0 discriminator 1 view .LVU104
+ 470 0016 0823     		movs	r3, #8
+ 471 0018 0F4A     		ldr	r2, .L44
+ 472 001a 0020     		movs	r0, #0
+ 473 001c FFF7FEFF 		bl	OLED_ShowString
+ 474              	.LVL53:
+ 475              	.L40:
+ 476              	.LBE2:
+ 233:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ 477              		.loc 1 233 43 is_stmt 1 discriminator 2 view .LVU105
+ 478 0020 0134     		adds	r4, r4, #1
+ 479              	.LVL54:
+ 233:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 16
+
+
+ 480              		.loc 1 233 43 is_stmt 0 discriminator 2 view .LVU106
+ 481 0022 E4B2     		uxtb	r4, r4
+ 482              	.LVL55:
+ 483              	.L38:
+ 233:modules/oled_menu.c ****         uint8_t item = (uint8_t)(offset + row);
+ 484              		.loc 1 233 24 is_stmt 1 discriminator 1 view .LVU107
+ 485 0024 032C     		cmp	r4, #3
+ 486 0026 0FD8     		bhi	.L43
+ 487              	.LBB3:
+ 234:modules/oled_menu.c **** 
+ 488              		.loc 1 234 9 view .LVU108
+ 234:modules/oled_menu.c **** 
+ 489              		.loc 1 234 17 is_stmt 0 view .LVU109
+ 490 0028 A519     		adds	r5, r4, r6
+ 491 002a EDB2     		uxtb	r5, r5
+ 492              	.LVL56:
+ 236:modules/oled_menu.c ****             OLED_ShowString(0, menu_row_to_y(row), kMenu2BasicItem[item].text, OLED_8X16);
+ 493              		.loc 1 236 9 is_stmt 1 view .LVU110
+ 236:modules/oled_menu.c ****             OLED_ShowString(0, menu_row_to_y(row), kMenu2BasicItem[item].text, OLED_8X16);
+ 494              		.loc 1 236 12 is_stmt 0 view .LVU111
+ 495 002c 032D     		cmp	r5, #3
+ 496 002e EED8     		bhi	.L39
+ 237:modules/oled_menu.c ****         } else {
+ 497              		.loc 1 237 13 is_stmt 1 view .LVU112
+ 498 0030 2046     		mov	r0, r4
+ 499 0032 FFF7FEFF 		bl	menu_row_to_y
+ 500              	.LVL57:
+ 501 0036 0146     		mov	r1, r0
+ 237:modules/oled_menu.c ****         } else {
+ 502              		.loc 1 237 13 is_stmt 0 discriminator 1 view .LVU113
+ 503 0038 0823     		movs	r3, #8
+ 504 003a 084A     		ldr	r2, .L44+4
+ 505 003c 52F83520 		ldr	r2, [r2, r5, lsl #3]
+ 506 0040 0020     		movs	r0, #0
+ 507 0042 FFF7FEFF 		bl	OLED_ShowString
+ 508              	.LVL58:
+ 509 0046 EBE7     		b	.L40
+ 510              	.LVL59:
+ 511              	.L43:
+ 237:modules/oled_menu.c ****         } else {
+ 512              		.loc 1 237 13 discriminator 1 view .LVU114
+ 513              	.LBE3:
+ 243:modules/oled_menu.c ****     OLED_Update();
+ 514              		.loc 1 243 5 is_stmt 1 view .LVU115
+ 515 0048 B81B     		subs	r0, r7, r6
+ 516 004a C0B2     		uxtb	r0, r0
+ 517 004c FFF7FEFF 		bl	menu_highlight
+ 518              	.LVL60:
+ 244:modules/oled_menu.c **** }
+ 519              		.loc 1 244 5 view .LVU116
+ 520 0050 FFF7FEFF 		bl	OLED_Update
+ 521              	.LVL61:
+ 245:modules/oled_menu.c **** 
+ 522              		.loc 1 245 1 is_stmt 0 view .LVU117
+ 523 0054 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 524              	.LVL62:
+ 525              	.L45:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 17
+
+
+ 245:modules/oled_menu.c **** 
+ 526              		.loc 1 245 1 view .LVU118
+ 527 0056 00BF     		.align	2
+ 528              	.L44:
+ 529 0058 00000000 		.word	.LC0
+ 530 005c 00000000 		.word	kMenu2BasicItem
+ 531              		.cfi_endproc
+ 532              	.LFE8:
+ 534              		.section	.rodata.menu3_show.str1.4,"aMS",%progbits,1
+ 535              		.align	2
+ 536              	.LC1:
+ 537 0000 E5B08FE7 		.ascii	"\345\260\217\347\220\203\344\275\215\347\275\256:%d"
+ 537      9083E4BD 
+ 537      8DE7BDAE 
+ 537      3A2564
+ 538 000f 636D2020 		.ascii	"cm   \000"
+ 538      2000
+ 539              		.section	.text.menu3_show,"ax",%progbits
+ 540              		.align	1
+ 541              		.syntax unified
+ 542              		.thumb
+ 543              		.thumb_func
+ 545              	menu3_show:
+ 546              	.LFB10:
+ 269:modules/oled_menu.c ****     OLED_Clear();
+ 547              		.loc 1 269 1 is_stmt 1 view -0
+ 548              		.cfi_startproc
+ 549              		@ args = 0, pretend = 0, frame = 0
+ 550              		@ frame_needed = 0, uses_anonymous_args = 0
+ 551 0000 10B5     		push	{r4, lr}
+ 552              	.LCFI4:
+ 553              		.cfi_def_cfa_offset 8
+ 554              		.cfi_offset 4, -8
+ 555              		.cfi_offset 14, -4
+ 556 0002 82B0     		sub	sp, sp, #8
+ 557              	.LCFI5:
+ 558              		.cfi_def_cfa_offset 16
+ 270:modules/oled_menu.c ****     OLED_Printf(0, 0, OLED_8X16, "小球位置:%dcm   ", location_cm);
+ 559              		.loc 1 270 5 view .LVU120
+ 560 0004 FFF7FEFF 		bl	OLED_Clear
+ 561              	.LVL63:
+ 271:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(MENU3_BACK_HINT_ROW), MENU3_BACK_HINT_TEXT, OLED_8X16);
+ 562              		.loc 1 271 5 view .LVU121
+ 563 0008 0024     		movs	r4, #0
+ 564 000a 0094     		str	r4, [sp]
+ 565 000c 0A4B     		ldr	r3, .L48
+ 566 000e 0822     		movs	r2, #8
+ 567 0010 2146     		mov	r1, r4
+ 568 0012 2046     		mov	r0, r4
+ 569 0014 FFF7FEFF 		bl	OLED_Printf
+ 570              	.LVL64:
+ 272:modules/oled_menu.c ****     menu_highlight(MENU3_BACK_HINT_ROW);
+ 571              		.loc 1 272 5 view .LVU122
+ 572 0018 0320     		movs	r0, #3
+ 573 001a FFF7FEFF 		bl	menu_row_to_y
+ 574              	.LVL65:
+ 575 001e 0146     		mov	r1, r0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 18
+
+
+ 272:modules/oled_menu.c ****     menu_highlight(MENU3_BACK_HINT_ROW);
+ 576              		.loc 1 272 5 is_stmt 0 discriminator 1 view .LVU123
+ 577 0020 0823     		movs	r3, #8
+ 578 0022 064A     		ldr	r2, .L48+4
+ 579 0024 2046     		mov	r0, r4
+ 580 0026 FFF7FEFF 		bl	OLED_ShowString
+ 581              	.LVL66:
+ 273:modules/oled_menu.c ****     OLED_Update();
+ 582              		.loc 1 273 5 is_stmt 1 view .LVU124
+ 583 002a 0320     		movs	r0, #3
+ 584 002c FFF7FEFF 		bl	menu_highlight
+ 585              	.LVL67:
+ 274:modules/oled_menu.c **** }
+ 586              		.loc 1 274 5 view .LVU125
+ 587 0030 FFF7FEFF 		bl	OLED_Update
+ 588              	.LVL68:
+ 275:modules/oled_menu.c **** 
+ 589              		.loc 1 275 1 is_stmt 0 view .LVU126
+ 590 0034 02B0     		add	sp, sp, #8
+ 591              	.LCFI6:
+ 592              		.cfi_def_cfa_offset 8
+ 593              		@ sp needed
+ 594 0036 10BD     		pop	{r4, pc}
+ 595              	.L49:
+ 596              		.align	2
+ 597              	.L48:
+ 598 0038 00000000 		.word	.LC1
+ 599 003c 00000000 		.word	.LC0
+ 600              		.cfi_endproc
+ 601              	.LFE10:
+ 603              		.section	.text.menu3_run,"ax",%progbits
+ 604              		.align	1
+ 605              		.syntax unified
+ 606              		.thumb
+ 607              		.thumb_func
+ 609              	menu3_run:
+ 610              	.LFB11:
+ 278:modules/oled_menu.c ****     uint8_t key_num;
+ 611              		.loc 1 278 1 is_stmt 1 view -0
+ 612              		.cfi_startproc
+ 613              		@ args = 0, pretend = 0, frame = 0
+ 614              		@ frame_needed = 0, uses_anonymous_args = 0
+ 615              	.LVL69:
+ 278:modules/oled_menu.c ****     uint8_t key_num;
+ 616              		.loc 1 278 1 is_stmt 0 view .LVU128
+ 617 0000 08B5     		push	{r3, lr}
+ 618              	.LCFI7:
+ 619              		.cfi_def_cfa_offset 8
+ 620              		.cfi_offset 3, -8
+ 621              		.cfi_offset 14, -4
+ 622              	.LVL70:
+ 623              	.L52:
+ 279:modules/oled_menu.c **** 
+ 624              		.loc 1 279 5 is_stmt 1 view .LVU129
+ 281:modules/oled_menu.c ****         switch (task) {
+ 625              		.loc 1 281 5 view .LVU130
+ 282:modules/oled_menu.c ****         case MENU_TASK_STABLE_POSITION:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 19
+
+
+ 626              		.loc 1 282 9 view .LVU131
+ 305:modules/oled_menu.c ****         }
+ 627              		.loc 1 305 13 view .LVU132
+ 308:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY3) {
+ 628              		.loc 1 308 9 view .LVU133
+ 308:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY3) {
+ 629              		.loc 1 308 19 is_stmt 0 view .LVU134
+ 630 0002 FFF7FEFF 		bl	Key_GetNum
+ 631              	.LVL71:
+ 309:modules/oled_menu.c ****             return;                 /* 上一步：回到二级菜单 */
+ 632              		.loc 1 309 9 is_stmt 1 view .LVU135
+ 309:modules/oled_menu.c ****             return;                 /* 上一步：回到二级菜单 */
+ 633              		.loc 1 309 12 is_stmt 0 view .LVU136
+ 634 0006 0328     		cmp	r0, #3
+ 635 0008 02D0     		beq	.L53
+ 313:modules/oled_menu.c ****     }
+ 636              		.loc 1 313 9 is_stmt 1 view .LVU137
+ 637 000a FFF7FEFF 		bl	menu3_show
+ 638              	.LVL72:
+ 281:modules/oled_menu.c ****         switch (task) {
+ 639              		.loc 1 281 11 view .LVU138
+ 282:modules/oled_menu.c ****         case MENU_TASK_STABLE_POSITION:
+ 640              		.loc 1 282 9 is_stmt 0 view .LVU139
+ 641 000e F8E7     		b	.L52
+ 642              	.LVL73:
+ 643              	.L53:
+ 315:modules/oled_menu.c **** 
+ 644              		.loc 1 315 1 view .LVU140
+ 645 0010 08BD     		pop	{r3, pc}
+ 646              		.cfi_endproc
+ 647              	.LFE11:
+ 649              		.section	.text.menu2_basic_run,"ax",%progbits
+ 650              		.align	1
+ 651              		.syntax unified
+ 652              		.thumb
+ 653              		.thumb_func
+ 655              	menu2_basic_run:
+ 656              	.LFB13:
+ 344:modules/oled_menu.c **** 
+ 345:modules/oled_menu.c **** /**
+ 346:modules/oled_menu.c ****  * @brief 基础部分二级菜单循环。
+ 347:modules/oled_menu.c ****  *
+ 348:modules/oled_menu.c ****  * 确认前 4 项进入三级菜单执行任务，确认"上一步"回到一级菜单。
+ 349:modules/oled_menu.c ****  */
+ 350:modules/oled_menu.c **** static void menu2_basic_run(void)
+ 351:modules/oled_menu.c **** {
+ 657              		.loc 1 351 1 is_stmt 1 view -0
+ 658              		.cfi_startproc
+ 659              		@ args = 0, pretend = 0, frame = 0
+ 660              		@ frame_needed = 0, uses_anonymous_args = 0
+ 661 0000 10B5     		push	{r4, lr}
+ 662              	.LCFI8:
+ 663              		.cfi_def_cfa_offset 8
+ 664              		.cfi_offset 4, -8
+ 665              		.cfi_offset 14, -4
+ 352:modules/oled_menu.c ****     uint8_t entry = 0u;
+ 666              		.loc 1 352 5 view .LVU142
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 20
+
+
+ 667              	.LVL74:
+ 668              		.loc 1 352 13 is_stmt 0 view .LVU143
+ 669 0002 0024     		movs	r4, #0
+ 670 0004 0BE0     		b	.L60
+ 671              	.LVL75:
+ 672              	.L63:
+ 353:modules/oled_menu.c ****     uint8_t key_num;
+ 354:modules/oled_menu.c **** 
+ 355:modules/oled_menu.c ****     while (1) {
+ 356:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 357:modules/oled_menu.c **** 
+ 358:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY1) {
+ 359:modules/oled_menu.c ****             entry = menu_move_prev(entry, MENU2_BASIC_ENTRY_NUM);
+ 673              		.loc 1 359 13 is_stmt 1 view .LVU144
+ 674              		.loc 1 359 21 is_stmt 0 view .LVU145
+ 675 0006 0521     		movs	r1, #5
+ 676 0008 2046     		mov	r0, r4
+ 677              	.LVL76:
+ 678              		.loc 1 359 21 view .LVU146
+ 679 000a FFF7FEFF 		bl	menu_move_prev
+ 680              	.LVL77:
+ 681 000e 0446     		mov	r4, r0
+ 682              	.LVL78:
+ 683              	.L57:
+ 360:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY2) {
+ 361:modules/oled_menu.c ****             entry = menu_move_next(entry, MENU2_BASIC_ENTRY_NUM);
+ 362:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 363:modules/oled_menu.c ****             if (entry == MENU2_BASIC_BACK_ENTRY) {
+ 364:modules/oled_menu.c ****                 return;                                     /* 上一步：回到一级菜单 */
+ 365:modules/oled_menu.c ****             }
+ 366:modules/oled_menu.c **** 
+ 367:modules/oled_menu.c ****             menu3_run(kMenu2BasicItem[entry].task);         /* 执行任务，返回后重新显示
+ 368:modules/oled_menu.c ****         } else {
+ 369:modules/oled_menu.c ****             /* 无按键按下，保持当前光标位置 */
+ 370:modules/oled_menu.c ****         }
+ 684              		.loc 1 370 9 is_stmt 1 view .LVU147
+ 371:modules/oled_menu.c **** 
+ 372:modules/oled_menu.c ****         menu2_basic_show(menu_scroll_offset(entry, MENU2_BASIC_ENTRY_NUM), entry);
+ 685              		.loc 1 372 9 view .LVU148
+ 686 0010 0521     		movs	r1, #5
+ 687 0012 2046     		mov	r0, r4
+ 688 0014 FFF7FEFF 		bl	menu_scroll_offset
+ 689              	.LVL79:
+ 690              		.loc 1 372 9 is_stmt 0 discriminator 1 view .LVU149
+ 691 0018 2146     		mov	r1, r4
+ 692 001a FFF7FEFF 		bl	menu2_basic_show
+ 693              	.LVL80:
+ 355:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 694              		.loc 1 355 11 is_stmt 1 view .LVU150
+ 695              	.L60:
+ 353:modules/oled_menu.c **** 
+ 696              		.loc 1 353 5 view .LVU151
+ 355:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 697              		.loc 1 355 5 view .LVU152
+ 356:modules/oled_menu.c **** 
+ 698              		.loc 1 356 9 view .LVU153
+ 356:modules/oled_menu.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 21
+
+
+ 699              		.loc 1 356 19 is_stmt 0 view .LVU154
+ 700 001e FFF7FEFF 		bl	Key_GetNum
+ 701              	.LVL81:
+ 358:modules/oled_menu.c ****             entry = menu_move_prev(entry, MENU2_BASIC_ENTRY_NUM);
+ 702              		.loc 1 358 9 is_stmt 1 view .LVU155
+ 358:modules/oled_menu.c ****             entry = menu_move_prev(entry, MENU2_BASIC_ENTRY_NUM);
+ 703              		.loc 1 358 12 is_stmt 0 view .LVU156
+ 704 0022 0128     		cmp	r0, #1
+ 705 0024 EFD0     		beq	.L63
+ 360:modules/oled_menu.c ****             entry = menu_move_next(entry, MENU2_BASIC_ENTRY_NUM);
+ 706              		.loc 1 360 16 is_stmt 1 view .LVU157
+ 360:modules/oled_menu.c ****             entry = menu_move_next(entry, MENU2_BASIC_ENTRY_NUM);
+ 707              		.loc 1 360 19 is_stmt 0 view .LVU158
+ 708 0026 0228     		cmp	r0, #2
+ 709 0028 0AD0     		beq	.L64
+ 362:modules/oled_menu.c ****             if (entry == MENU2_BASIC_BACK_ENTRY) {
+ 710              		.loc 1 362 16 is_stmt 1 view .LVU159
+ 362:modules/oled_menu.c ****             if (entry == MENU2_BASIC_BACK_ENTRY) {
+ 711              		.loc 1 362 19 is_stmt 0 view .LVU160
+ 712 002a 0328     		cmp	r0, #3
+ 713 002c F0D1     		bne	.L57
+ 363:modules/oled_menu.c ****                 return;                                     /* 上一步：回到一级菜单 */
+ 714              		.loc 1 363 13 is_stmt 1 view .LVU161
+ 363:modules/oled_menu.c ****                 return;                                     /* 上一步：回到一级菜单 */
+ 715              		.loc 1 363 16 is_stmt 0 view .LVU162
+ 716 002e 042C     		cmp	r4, #4
+ 717 0030 0CD0     		beq	.L61
+ 367:modules/oled_menu.c ****         } else {
+ 718              		.loc 1 367 13 is_stmt 1 view .LVU163
+ 367:modules/oled_menu.c ****         } else {
+ 719              		.loc 1 367 45 is_stmt 0 view .LVU164
+ 720 0032 074B     		ldr	r3, .L65
+ 721 0034 03EBC403 		add	r3, r3, r4, lsl #3
+ 367:modules/oled_menu.c ****         } else {
+ 722              		.loc 1 367 13 view .LVU165
+ 723 0038 1879     		ldrb	r0, [r3, #4]	@ zero_extendqisi2
+ 724              	.LVL82:
+ 367:modules/oled_menu.c ****         } else {
+ 725              		.loc 1 367 13 view .LVU166
+ 726 003a FFF7FEFF 		bl	menu3_run
+ 727              	.LVL83:
+ 728 003e E7E7     		b	.L57
+ 729              	.LVL84:
+ 730              	.L64:
+ 361:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 731              		.loc 1 361 13 is_stmt 1 view .LVU167
+ 361:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 732              		.loc 1 361 21 is_stmt 0 view .LVU168
+ 733 0040 0521     		movs	r1, #5
+ 734 0042 2046     		mov	r0, r4
+ 735              	.LVL85:
+ 361:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 736              		.loc 1 361 21 view .LVU169
+ 737 0044 FFF7FEFF 		bl	menu_move_next
+ 738              	.LVL86:
+ 739 0048 0446     		mov	r4, r0
+ 740              	.LVL87:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 22
+
+
+ 361:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 741              		.loc 1 361 21 view .LVU170
+ 742 004a E1E7     		b	.L57
+ 743              	.LVL88:
+ 744              	.L61:
+ 373:modules/oled_menu.c ****     }
+ 374:modules/oled_menu.c **** }
+ 745              		.loc 1 374 1 view .LVU171
+ 746 004c 10BD     		pop	{r4, pc}
+ 747              	.LVL89:
+ 748              	.L66:
+ 749              		.loc 1 374 1 view .LVU172
+ 750 004e 00BF     		.align	2
+ 751              	.L65:
+ 752 0050 00000000 		.word	kMenu2BasicItem
+ 753              		.cfi_endproc
+ 754              	.LFE13:
+ 756              		.section	.rodata.menu2_performance_show.str1.4,"aMS",%progbits,1
+ 757              		.align	2
+ 758              	.LC2:
+ 759 0000 E68C87E5 		.ascii	"\346\214\207\345\256\232\344\275\215\347\275\256:%d"
+ 759      AE9AE4BD 
+ 759      8DE7BDAE 
+ 759      3A2564
+ 760 000f 636D2020 		.ascii	"cm   \000"
+ 760      2000
+ 761 0015 000000   		.align	2
+ 762              	.LC3:
+ 763 0018 20202B31 		.ascii	"  +1cm          \000"
+ 763      636D2020 
+ 763      20202020 
+ 763      20202020 
+ 763      00
+ 764 0029 000000   		.align	2
+ 765              	.LC4:
+ 766 002c 20202D31 		.ascii	"  -1cm          \000"
+ 766      636D2020 
+ 766      20202020 
+ 766      20202020 
+ 766      00
+ 767              		.section	.text.menu2_performance_show,"ax",%progbits
+ 768              		.align	1
+ 769              		.syntax unified
+ 770              		.thumb
+ 771              		.thumb_func
+ 773              	menu2_performance_show:
+ 774              	.LVL90:
+ 775              	.LFB9:
+ 253:modules/oled_menu.c ****     OLED_Clear();
+ 776              		.loc 1 253 1 is_stmt 1 view -0
+ 777              		.cfi_startproc
+ 778              		@ args = 0, pretend = 0, frame = 0
+ 779              		@ frame_needed = 0, uses_anonymous_args = 0
+ 253:modules/oled_menu.c ****     OLED_Clear();
+ 780              		.loc 1 253 1 is_stmt 0 view .LVU174
+ 781 0000 10B5     		push	{r4, lr}
+ 782              	.LCFI9:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 23
+
+
+ 783              		.cfi_def_cfa_offset 8
+ 784              		.cfi_offset 4, -8
+ 785              		.cfi_offset 14, -4
+ 786 0002 82B0     		sub	sp, sp, #8
+ 787              	.LCFI10:
+ 788              		.cfi_def_cfa_offset 16
+ 789 0004 0446     		mov	r4, r0
+ 254:modules/oled_menu.c ****     /* 目标位置就显示在第 1 行，光标停在这一行按确认即开始执行任务 */
+ 790              		.loc 1 254 5 is_stmt 1 view .LVU175
+ 791 0006 FFF7FEFF 		bl	OLED_Clear
+ 792              	.LVL91:
+ 256:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(1u), MENU_BACK_TEXT, OLED_8X16);
+ 793              		.loc 1 256 5 view .LVU176
+ 794 000a 0020     		movs	r0, #0
+ 795 000c FFF7FEFF 		bl	menu_row_to_y
+ 796              	.LVL92:
+ 797 0010 0146     		mov	r1, r0
+ 256:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(1u), MENU_BACK_TEXT, OLED_8X16);
+ 798              		.loc 1 256 5 is_stmt 0 discriminator 1 view .LVU177
+ 799 0012 154B     		ldr	r3, .L69
+ 800 0014 93F90030 		ldrsb	r3, [r3]
+ 801 0018 0093     		str	r3, [sp]
+ 802 001a 144B     		ldr	r3, .L69+4
+ 803 001c 0822     		movs	r2, #8
+ 804 001e 0020     		movs	r0, #0
+ 805 0020 FFF7FEFF 		bl	OLED_Printf
+ 806              	.LVL93:
+ 257:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(2u), "  +1cm          ", OLED_8X16);
+ 807              		.loc 1 257 5 is_stmt 1 view .LVU178
+ 808 0024 0120     		movs	r0, #1
+ 809 0026 FFF7FEFF 		bl	menu_row_to_y
+ 810              	.LVL94:
+ 811 002a 0146     		mov	r1, r0
+ 257:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(2u), "  +1cm          ", OLED_8X16);
+ 812              		.loc 1 257 5 is_stmt 0 discriminator 1 view .LVU179
+ 813 002c 0823     		movs	r3, #8
+ 814 002e 104A     		ldr	r2, .L69+8
+ 815 0030 0020     		movs	r0, #0
+ 816 0032 FFF7FEFF 		bl	OLED_ShowString
+ 817              	.LVL95:
+ 258:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(3u), "  -1cm          ", OLED_8X16);
+ 818              		.loc 1 258 5 is_stmt 1 view .LVU180
+ 819 0036 0220     		movs	r0, #2
+ 820 0038 FFF7FEFF 		bl	menu_row_to_y
+ 821              	.LVL96:
+ 822 003c 0146     		mov	r1, r0
+ 258:modules/oled_menu.c ****     OLED_ShowString(0, menu_row_to_y(3u), "  -1cm          ", OLED_8X16);
+ 823              		.loc 1 258 5 is_stmt 0 discriminator 1 view .LVU181
+ 824 003e 0823     		movs	r3, #8
+ 825 0040 0C4A     		ldr	r2, .L69+12
+ 826 0042 0020     		movs	r0, #0
+ 827 0044 FFF7FEFF 		bl	OLED_ShowString
+ 828              	.LVL97:
+ 259:modules/oled_menu.c **** 
+ 829              		.loc 1 259 5 is_stmt 1 view .LVU182
+ 830 0048 0320     		movs	r0, #3
+ 831 004a FFF7FEFF 		bl	menu_row_to_y
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 24
+
+
+ 832              	.LVL98:
+ 833 004e 0146     		mov	r1, r0
+ 259:modules/oled_menu.c **** 
+ 834              		.loc 1 259 5 is_stmt 0 discriminator 1 view .LVU183
+ 835 0050 0823     		movs	r3, #8
+ 836 0052 094A     		ldr	r2, .L69+16
+ 837 0054 0020     		movs	r0, #0
+ 838 0056 FFF7FEFF 		bl	OLED_ShowString
+ 839              	.LVL99:
+ 261:modules/oled_menu.c ****     OLED_Update();
+ 840              		.loc 1 261 5 is_stmt 1 view .LVU184
+ 841 005a 2046     		mov	r0, r4
+ 842 005c FFF7FEFF 		bl	menu_highlight
+ 843              	.LVL100:
+ 262:modules/oled_menu.c **** }
+ 844              		.loc 1 262 5 view .LVU185
+ 845 0060 FFF7FEFF 		bl	OLED_Update
+ 846              	.LVL101:
+ 263:modules/oled_menu.c **** 
+ 847              		.loc 1 263 1 is_stmt 0 view .LVU186
+ 848 0064 02B0     		add	sp, sp, #8
+ 849              	.LCFI11:
+ 850              		.cfi_def_cfa_offset 8
+ 851              		@ sp needed
+ 852 0066 10BD     		pop	{r4, pc}
+ 853              	.LVL102:
+ 854              	.L70:
+ 263:modules/oled_menu.c **** 
+ 855              		.loc 1 263 1 view .LVU187
+ 856              		.align	2
+ 857              	.L69:
+ 858 0068 00000000 		.word	specified_location_cm
+ 859 006c 00000000 		.word	.LC2
+ 860 0070 00000000 		.word	.LC0
+ 861 0074 18000000 		.word	.LC3
+ 862 0078 2C000000 		.word	.LC4
+ 863              		.cfi_endproc
+ 864              	.LFE9:
+ 866              		.section	.text.menu2_performance_run,"ax",%progbits
+ 867              		.align	1
+ 868              		.syntax unified
+ 869              		.thumb
+ 870              		.thumb_func
+ 872              	menu2_performance_run:
+ 873              	.LFB14:
+ 375:modules/oled_menu.c **** 
+ 376:modules/oled_menu.c **** /**
+ 377:modules/oled_menu.c ****  * @brief 发挥部分二级菜单循环。
+ 378:modules/oled_menu.c ****  *
+ 379:modules/oled_menu.c ****  * 确认目标位置行进入三级菜单执行任务，确认 +1cm / -1cm 行调节目标位置�
+ 380:modules/oled_menu.c ****  * 确认"上一步"回到一级菜单。
+ 381:modules/oled_menu.c ****  */
+ 382:modules/oled_menu.c **** static void menu2_performance_run(void)
+ 383:modules/oled_menu.c **** {
+ 874              		.loc 1 383 1 is_stmt 1 view -0
+ 875              		.cfi_startproc
+ 876              		@ args = 0, pretend = 0, frame = 0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 25
+
+
+ 877              		@ frame_needed = 0, uses_anonymous_args = 0
+ 878 0000 38B5     		push	{r3, r4, r5, lr}
+ 879              	.LCFI12:
+ 880              		.cfi_def_cfa_offset 16
+ 881              		.cfi_offset 3, -16
+ 882              		.cfi_offset 4, -12
+ 883              		.cfi_offset 5, -8
+ 884              		.cfi_offset 14, -4
+ 384:modules/oled_menu.c ****     uint8_t entry = MENU2_PERF_ENTRY_TARGET;
+ 885              		.loc 1 384 5 view .LVU189
+ 886              	.LVL103:
+ 887              		.loc 1 384 13 is_stmt 0 view .LVU190
+ 888 0002 0024     		movs	r4, #0
+ 889 0004 07E0     		b	.L80
+ 890              	.LVL104:
+ 891              	.L83:
+ 385:modules/oled_menu.c ****     uint8_t key_num;
+ 386:modules/oled_menu.c **** 
+ 387:modules/oled_menu.c ****     while (1) {
+ 388:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 389:modules/oled_menu.c **** 
+ 390:modules/oled_menu.c ****         if (key_num == KEY_NUM_KEY1) {
+ 391:modules/oled_menu.c ****             entry = menu_move_prev(entry, MENU2_PERF_ENTRY_NUM);
+ 892              		.loc 1 391 13 is_stmt 1 view .LVU191
+ 893              		.loc 1 391 21 is_stmt 0 view .LVU192
+ 894 0006 0421     		movs	r1, #4
+ 895 0008 2046     		mov	r0, r4
+ 896              	.LVL105:
+ 897              		.loc 1 391 21 view .LVU193
+ 898 000a FFF7FEFF 		bl	menu_move_prev
+ 899              	.LVL106:
+ 900 000e 0446     		mov	r4, r0
+ 901              	.LVL107:
+ 902              	.L73:
+ 392:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY2) {
+ 393:modules/oled_menu.c ****             entry = menu_move_next(entry, MENU2_PERF_ENTRY_NUM);
+ 394:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 395:modules/oled_menu.c ****             switch (entry) {
+ 396:modules/oled_menu.c ****             case MENU2_PERF_ENTRY_TARGET:
+ 397:modules/oled_menu.c ****                 menu3_run(MENU_TASK_TARGET_POSITION);       /* 执行任务，返回后重新显示
+ 398:modules/oled_menu.c ****                 break;
+ 399:modules/oled_menu.c **** 
+ 400:modules/oled_menu.c ****             case MENU2_PERF_ENTRY_BACK:
+ 401:modules/oled_menu.c ****                 return;                                     /* 上一步：回到一级菜单 */
+ 402:modules/oled_menu.c **** 
+ 403:modules/oled_menu.c ****             case MENU2_PERF_ENTRY_INC:
+ 404:modules/oled_menu.c ****                 specified_location_cm = menu_target_position_inc(specified_location_cm);
+ 405:modules/oled_menu.c ****                 break;
+ 406:modules/oled_menu.c **** 
+ 407:modules/oled_menu.c ****             case MENU2_PERF_ENTRY_DEC:
+ 408:modules/oled_menu.c ****                 specified_location_cm = menu_target_position_dec(specified_location_cm);
+ 409:modules/oled_menu.c ****                 break;
+ 410:modules/oled_menu.c **** 
+ 411:modules/oled_menu.c ****             default:
+ 412:modules/oled_menu.c ****                 /* 条目序号超出定义范围：不做任何动作 */
+ 413:modules/oled_menu.c ****                 break;
+ 414:modules/oled_menu.c ****             }
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 26
+
+
+ 415:modules/oled_menu.c ****         } else {
+ 416:modules/oled_menu.c ****             /* 无按键按下，保持当前光标位置 */
+ 417:modules/oled_menu.c ****         }
+ 903              		.loc 1 417 9 is_stmt 1 view .LVU194
+ 418:modules/oled_menu.c **** 
+ 419:modules/oled_menu.c ****         menu2_performance_show(entry);
+ 904              		.loc 1 419 9 view .LVU195
+ 905 0010 2046     		mov	r0, r4
+ 906 0012 FFF7FEFF 		bl	menu2_performance_show
+ 907              	.LVL108:
+ 387:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 908              		.loc 1 387 11 view .LVU196
+ 909              	.L80:
+ 385:modules/oled_menu.c **** 
+ 910              		.loc 1 385 5 view .LVU197
+ 387:modules/oled_menu.c ****         key_num = Key_GetNum();
+ 911              		.loc 1 387 5 view .LVU198
+ 388:modules/oled_menu.c **** 
+ 912              		.loc 1 388 9 view .LVU199
+ 388:modules/oled_menu.c **** 
+ 913              		.loc 1 388 19 is_stmt 0 view .LVU200
+ 914 0016 FFF7FEFF 		bl	Key_GetNum
+ 915              	.LVL109:
+ 390:modules/oled_menu.c ****             entry = menu_move_prev(entry, MENU2_PERF_ENTRY_NUM);
+ 916              		.loc 1 390 9 is_stmt 1 view .LVU201
+ 390:modules/oled_menu.c ****             entry = menu_move_prev(entry, MENU2_PERF_ENTRY_NUM);
+ 917              		.loc 1 390 12 is_stmt 0 view .LVU202
+ 918 001a 0128     		cmp	r0, #1
+ 919 001c F3D0     		beq	.L83
+ 392:modules/oled_menu.c ****             entry = menu_move_next(entry, MENU2_PERF_ENTRY_NUM);
+ 920              		.loc 1 392 16 is_stmt 1 view .LVU203
+ 392:modules/oled_menu.c ****             entry = menu_move_next(entry, MENU2_PERF_ENTRY_NUM);
+ 921              		.loc 1 392 19 is_stmt 0 view .LVU204
+ 922 001e 0228     		cmp	r0, #2
+ 923 0020 07D0     		beq	.L84
+ 394:modules/oled_menu.c ****             switch (entry) {
+ 924              		.loc 1 394 16 is_stmt 1 view .LVU205
+ 394:modules/oled_menu.c ****             switch (entry) {
+ 925              		.loc 1 394 19 is_stmt 0 view .LVU206
+ 926 0022 0328     		cmp	r0, #3
+ 927 0024 F4D1     		bne	.L73
+ 395:modules/oled_menu.c ****             case MENU2_PERF_ENTRY_TARGET:
+ 928              		.loc 1 395 13 is_stmt 1 view .LVU207
+ 929 0026 032C     		cmp	r4, #3
+ 930 0028 F2D8     		bhi	.L73
+ 931 002a DFE804F0 		tbb	[pc, r4]
+ 932              	.L76:
+ 933 002e 08       		.byte	(.L79-.L76)/2
+ 934 002f 1A       		.byte	(.L71-.L76)/2
+ 935 0030 0C       		.byte	(.L77-.L76)/2
+ 936 0031 13       		.byte	(.L75-.L76)/2
+ 937              		.p2align 1
+ 938              	.L84:
+ 393:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 939              		.loc 1 393 13 view .LVU208
+ 393:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 940              		.loc 1 393 21 is_stmt 0 view .LVU209
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 27
+
+
+ 941 0032 0421     		movs	r1, #4
+ 942 0034 2046     		mov	r0, r4
+ 943              	.LVL110:
+ 393:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 944              		.loc 1 393 21 view .LVU210
+ 945 0036 FFF7FEFF 		bl	menu_move_next
+ 946              	.LVL111:
+ 947 003a 0446     		mov	r4, r0
+ 948              	.LVL112:
+ 393:modules/oled_menu.c ****         } else if (key_num == KEY_NUM_KEY3) {
+ 949              		.loc 1 393 21 view .LVU211
+ 950 003c E8E7     		b	.L73
+ 951              	.LVL113:
+ 952              	.L79:
+ 397:modules/oled_menu.c ****                 break;
+ 953              		.loc 1 397 17 is_stmt 1 view .LVU212
+ 954 003e 0420     		movs	r0, #4
+ 955              	.LVL114:
+ 397:modules/oled_menu.c ****                 break;
+ 956              		.loc 1 397 17 is_stmt 0 view .LVU213
+ 957 0040 FFF7FEFF 		bl	menu3_run
+ 958              	.LVL115:
+ 398:modules/oled_menu.c **** 
+ 959              		.loc 1 398 17 is_stmt 1 view .LVU214
+ 960 0044 E4E7     		b	.L73
+ 961              	.LVL116:
+ 962              	.L77:
+ 404:modules/oled_menu.c ****                 break;
+ 963              		.loc 1 404 17 view .LVU215
+ 404:modules/oled_menu.c ****                 break;
+ 964              		.loc 1 404 41 is_stmt 0 view .LVU216
+ 965 0046 074D     		ldr	r5, .L85
+ 966 0048 95F90000 		ldrsb	r0, [r5]
+ 967              	.LVL117:
+ 404:modules/oled_menu.c ****                 break;
+ 968              		.loc 1 404 41 view .LVU217
+ 969 004c FFF7FEFF 		bl	menu_target_position_inc
+ 970              	.LVL118:
+ 404:modules/oled_menu.c ****                 break;
+ 971              		.loc 1 404 39 discriminator 1 view .LVU218
+ 972 0050 2870     		strb	r0, [r5]
+ 405:modules/oled_menu.c **** 
+ 973              		.loc 1 405 17 is_stmt 1 view .LVU219
+ 974 0052 DDE7     		b	.L73
+ 975              	.LVL119:
+ 976              	.L75:
+ 408:modules/oled_menu.c ****                 break;
+ 977              		.loc 1 408 17 view .LVU220
+ 408:modules/oled_menu.c ****                 break;
+ 978              		.loc 1 408 41 is_stmt 0 view .LVU221
+ 979 0054 034D     		ldr	r5, .L85
+ 980 0056 95F90000 		ldrsb	r0, [r5]
+ 981              	.LVL120:
+ 408:modules/oled_menu.c ****                 break;
+ 982              		.loc 1 408 41 view .LVU222
+ 983 005a FFF7FEFF 		bl	menu_target_position_dec
+ 984              	.LVL121:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 28
+
+
+ 408:modules/oled_menu.c ****                 break;
+ 985              		.loc 1 408 39 discriminator 1 view .LVU223
+ 986 005e 2870     		strb	r0, [r5]
+ 409:modules/oled_menu.c **** 
+ 987              		.loc 1 409 17 is_stmt 1 view .LVU224
+ 988 0060 D6E7     		b	.L73
+ 989              	.LVL122:
+ 990              	.L71:
+ 420:modules/oled_menu.c ****     }
+ 421:modules/oled_menu.c **** }
+ 991              		.loc 1 421 1 is_stmt 0 view .LVU225
+ 992 0062 38BD     		pop	{r3, r4, r5, pc}
+ 993              	.LVL123:
+ 994              	.L86:
+ 995              		.loc 1 421 1 view .LVU226
+ 996              		.align	2
+ 997              	.L85:
+ 998 0064 00000000 		.word	specified_location_cm
+ 999              		.cfi_endproc
+ 1000              	.LFE14:
+ 1002              		.section	.text.Main_Menu,"ax",%progbits
+ 1003              		.align	1
+ 1004              		.global	Main_Menu
+ 1005              		.syntax unified
+ 1006              		.thumb
+ 1007              		.thumb_func
+ 1009              	Main_Menu:
+ 1010              	.LFB15:
+ 422:modules/oled_menu.c **** 
+ 423:modules/oled_menu.c **** /**
+ 424:modules/oled_menu.c ****  * @brief 菜单入口：逐级进入 一级 -> 二级 -> 三级 菜单。
+ 425:modules/oled_menu.c ****  *
+ 426:modules/oled_menu.c ****  * 一级菜单确认后进入对应的二级菜单，二级菜单确认后进入三级菜单执行
+ 427:modules/oled_menu.c ****  * 各级菜单的"上一步"返回上一级。函数内部循环处理，不会主动返回。
+ 428:modules/oled_menu.c ****  *
+ 429:modules/oled_menu.c ****  * @return 固定返回 0
+ 430:modules/oled_menu.c ****  */
+ 431:modules/oled_menu.c **** int Main_Menu(void)
+ 432:modules/oled_menu.c **** {
+ 1011              		.loc 1 432 1 is_stmt 1 view -0
+ 1012              		.cfi_startproc
+ 1013              		@ Volatile: function does not return.
+ 1014              		@ args = 0, pretend = 0, frame = 0
+ 1015              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1016 0000 08B5     		push	{r3, lr}
+ 1017              	.LCFI13:
+ 1018              		.cfi_def_cfa_offset 8
+ 1019              		.cfi_offset 3, -8
+ 1020              		.cfi_offset 14, -4
+ 1021 0002 01E0     		b	.L88
+ 1022              	.L92:
+ 433:modules/oled_menu.c ****     while (1) {
+ 434:modules/oled_menu.c ****         if (menu1_select() == MENU1_ENTRY_BASIC) {
+ 435:modules/oled_menu.c ****             menu2_basic_run();
+ 1023              		.loc 1 435 13 view .LVU228
+ 1024 0004 FFF7FEFF 		bl	menu2_basic_run
+ 1025              	.LVL124:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 29
+
+
+ 1026              	.L88:
+ 433:modules/oled_menu.c ****     while (1) {
+ 1027              		.loc 1 433 5 view .LVU229
+ 434:modules/oled_menu.c ****             menu2_basic_run();
+ 1028              		.loc 1 434 9 view .LVU230
+ 434:modules/oled_menu.c ****             menu2_basic_run();
+ 1029              		.loc 1 434 13 is_stmt 0 view .LVU231
+ 1030 0008 FFF7FEFF 		bl	menu1_select
+ 1031              	.LVL125:
+ 434:modules/oled_menu.c ****             menu2_basic_run();
+ 1032              		.loc 1 434 12 discriminator 1 view .LVU232
+ 1033 000c 0028     		cmp	r0, #0
+ 1034 000e F9D0     		beq	.L92
+ 436:modules/oled_menu.c ****         } else {
+ 437:modules/oled_menu.c ****             menu2_performance_run();
+ 1035              		.loc 1 437 13 is_stmt 1 view .LVU233
+ 1036 0010 FFF7FEFF 		bl	menu2_performance_run
+ 1037              	.LVL126:
+ 1038 0014 F8E7     		b	.L88
+ 1039              		.cfi_endproc
+ 1040              	.LFE15:
+ 1042              		.section	.bss.specified_location_cm,"aw",%nobits
+ 1045              	specified_location_cm:
+ 1046 0000 00       		.space	1
+ 1047              		.section	.bss.menu1_cursor,"aw",%nobits
+ 1050              	menu1_cursor:
+ 1051 0000 00       		.space	1
+ 1052              		.section	.rodata.str1.4,"aMS",%progbits,1
+ 1053              		.align	2
+ 1054              	.LC5:
+ 1055 0000 312EE5AE 		.ascii	"1.\345\256\232\347\202\271\347\250\263\345\256\232\346"
+ 1055      9AE782B9 
+ 1055      E7A8B3E5 
+ 1055      AE9AE6
+ 1056 000f 8EA7E588 		.ascii	"\216\247\345\210\266  \000"
+ 1056      B6202000 
+ 1057 0017 00       		.align	2
+ 1058              	.LC6:
+ 1059 0018 322EE68A 		.ascii	"2.\346\212\230\350\277\224\350\277\220\345\212\250\344"
+ 1059      98E8BF94 
+ 1059      E8BF90E5 
+ 1059      8AA8E4
+ 1060 0027 B88EE697 		.ascii	"\270\216\346\227\266\346\225\210\000"
+ 1060      B6E69588 
+ 1060      00
+ 1061              		.align	2
+ 1062              	.LC7:
+ 1063 0030 332EE8BF 		.ascii	"3.\350\277\236\347\273\255\350\267\237\350\270\252\350"
+ 1063      9EE7BBAD 
+ 1063      E8B79FE8 
+ 1063      B8AAE8
+ 1064 003f BF90E58A 		.ascii	"\277\220\345\212\250  \000"
+ 1064      A8202000 
+ 1065 0047 00       		.align	2
+ 1066              	.LC8:
+ 1067 0048 342EE68A 		.ascii	"4.\346\212\227\345\271\262\346\211\260\350\203\275\345"
+ 1067      97E5B9B2 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 30
+
+
+ 1067      E689B0E8 
+ 1067      83BDE5
+ 1068 0057 8A9B2020 		.ascii	"\212\233    \000"
+ 1068      202000
+ 1069              		.section	.rodata.kMenu2BasicItem,"a"
+ 1070              		.align	2
+ 1073              	kMenu2BasicItem:
+ 1074 0000 00000000 		.word	.LC5
+ 1075 0004 00       		.byte	0
+ 1076 0005 000000   		.space	3
+ 1077 0008 18000000 		.word	.LC6
+ 1078 000c 01       		.byte	1
+ 1079 000d 000000   		.space	3
+ 1080 0010 30000000 		.word	.LC7
+ 1081 0014 02       		.byte	2
+ 1082 0015 000000   		.space	3
+ 1083 0018 48000000 		.word	.LC8
+ 1084 001c 03       		.byte	3
+ 1085 001d 000000   		.space	3
+ 1086              		.section	.rodata.str1.4
+ 1087 005e 0000     		.align	2
+ 1088              	.LC9:
+ 1089 0060 E794B5E5 		.ascii	"\347\224\265\345\255\2202503 \346\235\216\351\252\217"
+ 1089      AD903235 
+ 1089      303320E6 
+ 1089      9D8EE9AA 
+ 1089      8F
+ 1090 0071 E5AE8F20 		.ascii	"\345\256\217 \000"
+ 1090      00
+ 1091 0076 0000     		.align	2
+ 1092              	.LC10:
+ 1093 0078 E7AEA1E7 		.ascii	"\347\256\241\347\220\203\345\271\263\350\241\241\346"
+ 1093      9083E5B9 
+ 1093      B3E8A1A1 
+ 1093      E6
+ 1094 0085 8EA7E588 		.ascii	"\216\247\345\210\266\347\263\273\347\273\237 \000"
+ 1094      B6E7B3BB 
+ 1094      E7BB9F20 
+ 1094      00
+ 1095 0092 0000     		.align	2
+ 1096              	.LC11:
+ 1097 0094 312EE59F 		.ascii	"1.\345\237\272\347\241\200\351\203\250\345\210\206 "
+ 1097      BAE7A180 
+ 1097      E983A8E5 
+ 1097      888620
+ 1098 00a3 20202020 		.ascii	"     \000"
+ 1098      2000
+ 1099 00a9 000000   		.align	2
+ 1100              	.LC12:
+ 1101 00ac 322EE58F 		.ascii	"2.\345\217\221\346\214\245\351\203\250\345\210\206 "
+ 1101      91E68CA5 
+ 1101      E983A8E5 
+ 1101      888620
+ 1102 00bb 20202020 		.ascii	"     \000"
+ 1102      2000
+ 1103              		.section	.rodata.kMenu1Text,"a"
+ 1104              		.align	2
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 31
+
+
+ 1107              	kMenu1Text:
+ 1108 0000 60000000 		.word	.LC9
+ 1109 0004 78000000 		.word	.LC10
+ 1110 0008 94000000 		.word	.LC11
+ 1111 000c AC000000 		.word	.LC12
+ 1112              		.text
+ 1113              	.Letext0:
+ 1114              		.file 2 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 1115              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 1116              		.file 4 "modules/oled.h"
+ 1117              		.file 5 "modules/key.h"
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 32
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 oled_menu.c
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:19     .rodata.menu1_show.str1.4:00000000 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:36     .text.menu1_show:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:42     .text.menu1_show:00000000 menu1_show
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:89     .text.menu1_show:00000038 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:97     .rodata.menu2_1_show.str1.4:00000000 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:114    .text.menu2_1_show:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:120    .text.menu2_1_show:00000000 menu2_1_show
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:167    .text.menu2_1_show:00000038 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:175    .rodata.menu2_2_show.str1.4:00000000 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:183    .text.menu2_2_show:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:189    .text.menu2_2_show:00000000 menu2_2_show
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:231    .text.menu2_2_show:0000002c $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:544    .bss.specified_location_cm:00000000 specified_location_cm
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:238    .rodata.menu3_show.str1.4:00000000 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:243    .text.menu3_show:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:249    .text.menu3_show:00000000 menu3_show
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:284    .text.menu3_show:00000020 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:538    .bss.location_cm:00000000 location_cm
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:290    .text.menu1:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:296    .text.menu1:00000000 menu1
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:522    .text.menu1:00000114 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:532    .data.flag:00000000 flag
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:550    .data.D:00000000 D
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:556    .bss.KeyNum:00000000 KeyNum
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:539    .bss.location_cm:00000000 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:545    .bss.specified_location_cm:00000000 $d
-C:\Users\LJH\AppData\Local\Temp\cccMsaqd.s:557    .bss.KeyNum:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:19     .text.menu_row_to_y:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:24     .text.menu_row_to_y:00000000 menu_row_to_y
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:42     .text.menu_move_prev:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:47     .text.menu_move_prev:00000000 menu_move_prev
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:82     .text.menu_move_next:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:87     .text.menu_move_next:00000000 menu_move_next
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:110    .text.menu_scroll_offset:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:115    .text.menu_scroll_offset:00000000 menu_scroll_offset
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:155    .text.menu_target_position_inc:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:160    .text.menu_target_position_inc:00000000 menu_target_position_inc
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:192    .text.menu_target_position_dec:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:197    .text.menu_target_position_dec:00000000 menu_target_position_dec
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:229    .text.menu_highlight:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:234    .text.menu_highlight:00000000 menu_highlight
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:264    .text.menu1_show:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:269    .text.menu1_show:00000000 menu1_show
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:333    .text.menu1_show:00000038 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1107   .rodata.kMenu1Text:00000000 kMenu1Text
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:338    .text.menu1_select:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:343    .text.menu1_select:00000000 menu1_select
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:419    .text.menu1_select:0000003c $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1050   .bss.menu1_cursor:00000000 menu1_cursor
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:424    .rodata.menu2_basic_show.str1.4:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:428    .text.menu2_basic_show:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:433    .text.menu2_basic_show:00000000 menu2_basic_show
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:529    .text.menu2_basic_show:00000058 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1073   .rodata.kMenu2BasicItem:00000000 kMenu2BasicItem
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:535    .rodata.menu3_show.str1.4:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:540    .text.menu3_show:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:545    .text.menu3_show:00000000 menu3_show
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:598    .text.menu3_show:00000038 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:604    .text.menu3_run:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:609    .text.menu3_run:00000000 menu3_run
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:650    .text.menu2_basic_run:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:655    .text.menu2_basic_run:00000000 menu2_basic_run
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:752    .text.menu2_basic_run:00000050 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:757    .rodata.menu2_performance_show.str1.4:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:768    .text.menu2_performance_show:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:773    .text.menu2_performance_show:00000000 menu2_performance_show
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:858    .text.menu2_performance_show:00000068 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1045   .bss.specified_location_cm:00000000 specified_location_cm
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:867    .text.menu2_performance_run:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:872    .text.menu2_performance_run:00000000 menu2_performance_run
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:933    .text.menu2_performance_run:0000002e $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:937    .text.menu2_performance_run:00000032 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:998    .text.menu2_performance_run:00000064 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1003   .text.Main_Menu:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1009   .text.Main_Menu:00000000 Main_Menu
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1046   .bss.specified_location_cm:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1051   .bss.menu1_cursor:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1053   .rodata.str1.4:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1070   .rodata.kMenu2BasicItem:00000000 $d
+C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s:1104   .rodata.kMenu1Text:00000000 $d
 
 UNDEFINED SYMBOLS
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccUX2mPO.s 			page 33
+
+
+OLED_ReverseArea
+OLED_Clear
 OLED_ShowString
 OLED_Update
-OLED_Printf
-OLED_AnimUpdate
 Key_GetNum
-OLED_Animation
-OLED_Clear
+OLED_Printf

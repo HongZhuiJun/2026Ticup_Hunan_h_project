@@ -6,18 +6,15 @@ extern "C" {
 #endif
 
 /**
- * @brief 显示菜单页1。
+ * @brief 菜单入口：逐级进入 一级 -> 二级 -> 三级 菜单。
  *
- * 菜单页显示完成后进入自身循环，返回下一个要进入的菜单编号；
- * 具体跳转逻辑由调用方(应用层)根据返回值处理。
+ * 一级菜单（基础部分 / 发挥部分）确认后进入对应的二级菜单，二级菜单确认后
+ * 进入三级菜单执行任务，各级菜单的"上一步"返回上一级菜单。函数内部循环
+ * 处理菜单显示与按键扫描，不会主动返回。
  *
- * @return 下一个菜单编号
+ * @return 固定返回 0
  */
-
-void menu1_show(void);
-void menu2_1_show(void);
-void menu2_2_show(void);
-int menu1(void);
+int Main_Menu(void);
 
 #ifdef __cplusplus
 }
