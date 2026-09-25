@@ -2,15 +2,32 @@
     "configurations": [
         {
             "name": "Win32",
+            // 显式列出包含路径，不依赖 ms-vscode.makefile-tools 的缓存。
+            // 之前只靠 "${workspaceFolder}/**" + configurationProvider，
+            // 新增目录（如 bsp/usart）后缓存不刷新就会报 "cannot open source file"。
+            // 注意：构建走 tasks.json 的 make 任务，与本文件无关。
             "includePath": [
+                "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy",
+                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                "${workspaceFolder}/Drivers/CMSIS/Include",
+                "${workspaceFolder}/bsp",
+                "${workspaceFolder}/bsp/gpio",
+                "${workspaceFolder}/bsp/usart",
+                "${workspaceFolder}/modules",
                 "${workspaceFolder}/**"
             ],
             "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
+                "USE_HAL_DRIVER",
+                "STM32F103xB"
             ],
-            "configurationProvider": "ms-vscode.makefile-tools"
+            // 让 IntelliSense 直接问真实编译器要内建宏和系统头路径。
+            // arm-none-eabi-gcc 已在本机 PATH 上（见 Makefile 的 PREFIX）
+            "compilerPath": "arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-arm"
         }
     ],
     "version": 4

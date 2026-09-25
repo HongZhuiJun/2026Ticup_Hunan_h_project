@@ -1,0 +1,1115 @@
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.arch armv7-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"usart1_k230.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "bsp/usart/usart1_k230.c"
+  18              		.section	.text.K230UsartFindInstance,"ax",%progbits
+  19              		.align	1
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  24              	K230UsartFindInstance:
+  25              	.LVL0:
+  26              	.LFB65:
+   1:bsp/usart/usart1_k230.c **** /**
+   2:bsp/usart/usart1_k230.c ****  * @file usart1_k230.c
+   3:bsp/usart/usart1_k230.c ****  * @brief BSP 层：USART1 + DMA1_Channel5「空闲中断不定长接收」驱动实现。
+   4:bsp/usart/usart1_k230.c ****  *
+   5:bsp/usart/usart1_k230.c ****  * 两种 DMA 模式都支持，行为差异集中在本文件，上层无感：
+   6:bsp/usart/usart1_k230.c ****  *   - Circular：DMA 永不停，缓冲循环覆盖。此时 HAL 回调传入的 Size 是
+   7:bsp/usart/usart1_k230.c ****  *     **写指针位置**（累计），不是本次增量，需要自己维护读指针算增量
+   8:bsp/usart/usart1_k230.c ****  *     （见 K230UsartDeliverCircular）。
+   9:bsp/usart/usart1_k230.c ****  *   - Normal：每次事件后 DMA 停止、缓冲归零，Size 就是本次收到的字节数，
+  10:bsp/usart/usart1_k230.c ****  *     交付后立刻重挂（见 K230UsartRearm）。
+  11:bsp/usart/usart1_k230.c ****  */
+  12:bsp/usart/usart1_k230.c **** #include "usart1_k230.h"
+  13:bsp/usart/usart1_k230.c **** #include <string.h>
+  14:bsp/usart/usart1_k230.c **** 
+  15:bsp/usart/usart1_k230.c **** /* 实例池：静态分配，控制周期内不做动态内存（开发规范 §7.3） */
+  16:bsp/usart/usart1_k230.c **** static K230UsartInstance k230_usart_pool[K230_USART_MAX_INSTANCE];
+  17:bsp/usart/usart1_k230.c **** 
+  18:bsp/usart/usart1_k230.c **** /* ============================ 内部函数 ============================ */
+  19:bsp/usart/usart1_k230.c **** 
+  20:bsp/usart/usart1_k230.c **** /**
+  21:bsp/usart/usart1_k230.c ****  * @brief 由 UART 句柄反查实例。
+  22:bsp/usart/usart1_k230.c ****  *
+  23:bsp/usart/usart1_k230.c ****  * @note HAL 的接收回调只传回 UART 句柄，不带用户数据，所以这里必须
+  24:bsp/usart/usart1_k230.c ****  *       自己维护句柄到实例的映射（开发规范 §6.4 的 parent 指针思路）。
+  25:bsp/usart/usart1_k230.c ****  */
+  26:bsp/usart/usart1_k230.c **** static K230UsartInstance *K230UsartFindInstance(UART_HandleTypeDef *uart_handle)
+  27:bsp/usart/usart1_k230.c **** {
+  27              		.loc 1 27 1 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 2
+
+
+  28:bsp/usart/usart1_k230.c ****     if (uart_handle == NULL) {
+  32              		.loc 1 28 5 view .LVU1
+  33              		.loc 1 28 8 is_stmt 0 view .LVU2
+  34 0000 0146     		mov	r1, r0
+  35 0002 98B1     		cbz	r0, .L6
+  36              	.LBB2:
+  29:bsp/usart/usart1_k230.c ****         return NULL;
+  30:bsp/usart/usart1_k230.c ****     }
+  31:bsp/usart/usart1_k230.c **** 
+  32:bsp/usart/usart1_k230.c ****     for (uint8_t i = 0u; i < K230_USART_MAX_INSTANCE; i++) {
+  37              		.loc 1 32 18 view .LVU3
+  38 0004 0023     		movs	r3, #0
+  39              	.LVL1:
+  40              	.L3:
+  41              		.loc 1 32 28 is_stmt 1 discriminator 1 view .LVU4
+  42 0006 012B     		cmp	r3, #1
+  43 0008 0ED8     		bhi	.L7
+  33:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == uart_handle) {
+  44              		.loc 1 33 9 view .LVU5
+  45              		.loc 1 33 31 is_stmt 0 view .LVU6
+  46 000a 03EB8302 		add	r2, r3, r3, lsl #2
+  47 000e 0848     		ldr	r0, .L9
+  48 0010 50F83220 		ldr	r2, [r0, r2, lsl #3]
+  49              		.loc 1 33 12 view .LVU7
+  50 0014 8A42     		cmp	r2, r1
+  51 0016 02D0     		beq	.L8
+  32:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == uart_handle) {
+  52              		.loc 1 32 56 is_stmt 1 discriminator 2 view .LVU8
+  53 0018 0133     		adds	r3, r3, #1
+  54              	.LVL2:
+  32:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == uart_handle) {
+  55              		.loc 1 32 56 is_stmt 0 discriminator 2 view .LVU9
+  56 001a DBB2     		uxtb	r3, r3
+  57              	.LVL3:
+  32:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == uart_handle) {
+  58              		.loc 1 32 56 discriminator 2 view .LVU10
+  59 001c F3E7     		b	.L3
+  60              	.LVL4:
+  61              	.L8:
+  34:bsp/usart/usart1_k230.c ****             return &k230_usart_pool[i];
+  62              		.loc 1 34 13 is_stmt 1 view .LVU11
+  63              		.loc 1 34 20 is_stmt 0 view .LVU12
+  64 001e 03EB8303 		add	r3, r3, r3, lsl #2
+  65              	.LVL5:
+  66              		.loc 1 34 20 view .LVU13
+  67 0022 00EBC300 		add	r0, r0, r3, lsl #3
+  68 0026 7047     		bx	lr
+  69              	.LVL6:
+  70              	.L7:
+  71              		.loc 1 34 20 view .LVU14
+  72              	.LBE2:
+  35:bsp/usart/usart1_k230.c ****         }
+  36:bsp/usart/usart1_k230.c ****     }
+  37:bsp/usart/usart1_k230.c **** 
+  38:bsp/usart/usart1_k230.c ****     return NULL;
+  73              		.loc 1 38 12 view .LVU15
+  74 0028 0020     		movs	r0, #0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 3
+
+
+  75              	.LBB3:
+  76 002a 7047     		bx	lr
+  77              	.LVL7:
+  78              	.L6:
+  79              		.loc 1 38 12 view .LVU16
+  80              	.LBE3:
+  39:bsp/usart/usart1_k230.c **** }
+  81              		.loc 1 39 1 view .LVU17
+  82 002c 7047     		bx	lr
+  83              	.L10:
+  84 002e 00BF     		.align	2
+  85              	.L9:
+  86 0030 00000000 		.word	k230_usart_pool
+  87              		.cfi_endproc
+  88              	.LFE65:
+  90              		.section	.text.K230UsartDeliver,"ax",%progbits
+  91              		.align	1
+  92              		.syntax unified
+  93              		.thumb
+  94              		.thumb_func
+  96              	K230UsartDeliver:
+  97              	.LVL8:
+  98              	.LFB66:
+  40:bsp/usart/usart1_k230.c **** 
+  41:bsp/usart/usart1_k230.c **** /**
+  42:bsp/usart/usart1_k230.c ****  * @brief 把一段数据交给上层，并记统计。
+  43:bsp/usart/usart1_k230.c ****  *
+  44:bsp/usart/usart1_k230.c ****  * @note 在中断上下文执行。上层回调可能被本函数连续调用多次
+  45:bsp/usart/usart1_k230.c ****  *       （Circular 模式回绕时一次事件拆成两段），所以上层回调必须是
+  46:bsp/usart/usart1_k230.c ****  *       可重入的字节流消费者。
+  47:bsp/usart/usart1_k230.c ****  */
+  48:bsp/usart/usart1_k230.c **** static void K230UsartDeliver(K230UsartInstance *instance, const uint8_t *data, uint16_t len)
+  49:bsp/usart/usart1_k230.c **** {
+  99              		.loc 1 49 1 is_stmt 1 view -0
+ 100              		.cfi_startproc
+ 101              		@ args = 0, pretend = 0, frame = 0
+ 102              		@ frame_needed = 0, uses_anonymous_args = 0
+  50:bsp/usart/usart1_k230.c ****     if (len == 0u) {
+ 103              		.loc 1 50 5 view .LVU19
+ 104              		.loc 1 50 8 is_stmt 0 view .LVU20
+ 105 0000 52B1     		cbz	r2, .L14
+  49:bsp/usart/usart1_k230.c ****     if (len == 0u) {
+ 106              		.loc 1 49 1 view .LVU21
+ 107 0002 08B5     		push	{r3, lr}
+ 108              	.LCFI0:
+ 109              		.cfi_def_cfa_offset 8
+ 110              		.cfi_offset 3, -8
+ 111              		.cfi_offset 14, -4
+  51:bsp/usart/usart1_k230.c ****         return;
+  52:bsp/usart/usart1_k230.c ****     }
+  53:bsp/usart/usart1_k230.c **** 
+  54:bsp/usart/usart1_k230.c ****     instance->rx_chunk_count++;
+ 112              		.loc 1 54 5 is_stmt 1 view .LVU22
+ 113              		.loc 1 54 13 is_stmt 0 view .LVU23
+ 114 0004 C369     		ldr	r3, [r0, #28]
+ 115              		.loc 1 54 29 view .LVU24
+ 116 0006 0133     		adds	r3, r3, #1
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 4
+
+
+ 117 0008 C361     		str	r3, [r0, #28]
+  55:bsp/usart/usart1_k230.c ****     instance->rx_byte_count += len;
+ 118              		.loc 1 55 5 is_stmt 1 view .LVU25
+ 119              		.loc 1 55 13 is_stmt 0 view .LVU26
+ 120 000a 036A     		ldr	r3, [r0, #32]
+ 121              		.loc 1 55 29 view .LVU27
+ 122 000c 1344     		add	r3, r3, r2
+ 123 000e 0362     		str	r3, [r0, #32]
+  56:bsp/usart/usart1_k230.c **** 
+  57:bsp/usart/usart1_k230.c ****     if (instance->rx_callback != NULL) {
+ 124              		.loc 1 57 5 is_stmt 1 view .LVU28
+ 125              		.loc 1 57 17 is_stmt 0 view .LVU29
+ 126 0010 4369     		ldr	r3, [r0, #20]
+ 127              		.loc 1 57 8 view .LVU30
+ 128 0012 03B1     		cbz	r3, .L11
+  58:bsp/usart/usart1_k230.c ****         instance->rx_callback(instance, data, len);
+ 129              		.loc 1 58 9 is_stmt 1 view .LVU31
+ 130 0014 9847     		blx	r3
+ 131              	.LVL9:
+ 132              	.L11:
+  59:bsp/usart/usart1_k230.c ****     }
+  60:bsp/usart/usart1_k230.c **** }
+ 133              		.loc 1 60 1 is_stmt 0 view .LVU32
+ 134 0016 08BD     		pop	{r3, pc}
+ 135              	.LVL10:
+ 136              	.L14:
+ 137              	.LCFI1:
+ 138              		.cfi_def_cfa_offset 0
+ 139              		.cfi_restore 3
+ 140              		.cfi_restore 14
+ 141              		.loc 1 60 1 view .LVU33
+ 142 0018 7047     		bx	lr
+ 143              		.cfi_endproc
+ 144              	.LFE66:
+ 146              		.section	.text.K230UsartDeliverCircular,"ax",%progbits
+ 147              		.align	1
+ 148              		.syntax unified
+ 149              		.thumb
+ 150              		.thumb_func
+ 152              	K230UsartDeliverCircular:
+ 153              	.LVL11:
+ 154              	.LFB68:
+  61:bsp/usart/usart1_k230.c **** 
+  62:bsp/usart/usart1_k230.c **** /**
+  63:bsp/usart/usart1_k230.c ****  * @brief 重新挂载 DMA 接收（仅 Normal 模式使用）。
+  64:bsp/usart/usart1_k230.c ****  *
+  65:bsp/usart/usart1_k230.c ****  * @note HAL 在调用 HAL_UARTEx_RxEventCallback() / HAL_UART_ErrorCallback()
+  66:bsp/usart/usart1_k230.c ****  *       之前已经把 RxState 复位成 READY 并中止了上一轮 DMA，
+  67:bsp/usart/usart1_k230.c ****  *       所以在这两个回调里可以直接重挂，不需要先 Abort。
+  68:bsp/usart/usart1_k230.c ****  */
+  69:bsp/usart/usart1_k230.c **** static void K230UsartRearm(K230UsartInstance *instance)
+  70:bsp/usart/usart1_k230.c **** {
+  71:bsp/usart/usart1_k230.c ****     if (HAL_UARTEx_ReceiveToIdle_DMA(instance->uart_handle,
+  72:bsp/usart/usart1_k230.c ****                                      instance->rx_dma_buf,
+  73:bsp/usart/usart1_k230.c ****                                      instance->rx_dma_buf_size) != HAL_OK) {
+  74:bsp/usart/usart1_k230.c ****         /* 重挂失败说明串口状态异常，计数后由上层通过 error_count 发现 */
+  75:bsp/usart/usart1_k230.c ****         instance->error_count++;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 5
+
+
+  76:bsp/usart/usart1_k230.c ****     }
+  77:bsp/usart/usart1_k230.c **** }
+  78:bsp/usart/usart1_k230.c **** 
+  79:bsp/usart/usart1_k230.c **** /**
+  80:bsp/usart/usart1_k230.c ****  * @brief Circular 模式下的增量交付。
+  81:bsp/usart/usart1_k230.c ****  *
+  82:bsp/usart/usart1_k230.c ****  * @param instance  实例。
+  83:bsp/usart/usart1_k230.c ****  * @param write_pos 写指针位置（HAL 传入的 Size，即已写入字节数对缓冲取模）�
+  84:bsp/usart/usart1_k230.c ****  *
+  85:bsp/usart/usart1_k230.c ****  * @note Circular 模式下 DMA 一直在跑，HAL 给的 Size 是写指针位置而不是
+  86:bsp/usart/usart1_k230.c ****  *       本次增量，因此必须自己记住上次消费到哪里（rx_read_pos）。
+  87:bsp/usart/usart1_k230.c ****  * @note 回绕时分两段交付：先缓冲尾部，再缓冲头部。
+  88:bsp/usart/usart1_k230.c ****  */
+  89:bsp/usart/usart1_k230.c **** static void K230UsartDeliverCircular(K230UsartInstance *instance, uint16_t write_pos)
+  90:bsp/usart/usart1_k230.c **** {
+ 155              		.loc 1 90 1 is_stmt 1 view -0
+ 156              		.cfi_startproc
+ 157              		@ args = 0, pretend = 0, frame = 0
+ 158              		@ frame_needed = 0, uses_anonymous_args = 0
+ 159              		.loc 1 90 1 is_stmt 0 view .LVU35
+ 160 0000 38B5     		push	{r3, r4, r5, lr}
+ 161              	.LCFI2:
+ 162              		.cfi_def_cfa_offset 16
+ 163              		.cfi_offset 3, -16
+ 164              		.cfi_offset 4, -12
+ 165              		.cfi_offset 5, -8
+ 166              		.cfi_offset 14, -4
+ 167 0002 0446     		mov	r4, r0
+  91:bsp/usart/usart1_k230.c ****     if (write_pos > instance->rx_dma_buf_size) {
+ 168              		.loc 1 91 5 is_stmt 1 view .LVU36
+ 169              		.loc 1 91 29 is_stmt 0 view .LVU37
+ 170 0004 8289     		ldrh	r2, [r0, #12]
+ 171              		.loc 1 91 8 view .LVU38
+ 172 0006 8A42     		cmp	r2, r1
+ 173 0008 0FD3     		bcc	.L25
+ 174 000a 0D46     		mov	r5, r1
+  92:bsp/usart/usart1_k230.c ****         /* 正常情况下不会发生。真发生说明 HAL 的语义变了，
+  93:bsp/usart/usart1_k230.c ****            这里宁可丢一次数据也不能越界读 */
+  94:bsp/usart/usart1_k230.c ****         instance->error_count++;
+  95:bsp/usart/usart1_k230.c ****         return;
+  96:bsp/usart/usart1_k230.c ****     }
+  97:bsp/usart/usart1_k230.c **** 
+  98:bsp/usart/usart1_k230.c ****     uint16_t read_pos = instance->rx_read_pos;
+ 175              		.loc 1 98 5 is_stmt 1 view .LVU39
+ 176              		.loc 1 98 14 is_stmt 0 view .LVU40
+ 177 000c 438B     		ldrh	r3, [r0, #26]
+ 178              	.LVL12:
+  99:bsp/usart/usart1_k230.c ****     if (write_pos == read_pos) {
+ 179              		.loc 1 99 5 is_stmt 1 view .LVU41
+ 180              		.loc 1 99 8 is_stmt 0 view .LVU42
+ 181 000e 9942     		cmp	r1, r3
+ 182 0010 0AD0     		beq	.L17
+ 100:bsp/usart/usart1_k230.c ****         /* 没有新数据。半传输/传输完成事件与空闲事件落在同一位置时会走
+ 101:bsp/usart/usart1_k230.c ****         return;
+ 102:bsp/usart/usart1_k230.c ****     }
+ 103:bsp/usart/usart1_k230.c **** 
+ 104:bsp/usart/usart1_k230.c ****     if (write_pos > read_pos) {
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 6
+
+
+ 183              		.loc 1 104 5 is_stmt 1 view .LVU43
+ 184              		.loc 1 104 8 is_stmt 0 view .LVU44
+ 185 0012 0ED9     		bls	.L20
+ 105:bsp/usart/usart1_k230.c ****         K230UsartDeliver(instance, &instance->rx_dma_buf[read_pos],
+ 186              		.loc 1 105 9 is_stmt 1 view .LVU45
+ 187              		.loc 1 105 45 is_stmt 0 view .LVU46
+ 188 0014 8168     		ldr	r1, [r0, #8]
+ 189              	.LVL13:
+ 190              		.loc 1 105 9 view .LVU47
+ 191 0016 EA1A     		subs	r2, r5, r3
+ 192 0018 92B2     		uxth	r2, r2
+ 193 001a 1944     		add	r1, r1, r3
+ 194 001c FFF7FEFF 		bl	K230UsartDeliver
+ 195              	.LVL14:
+ 196              	.L21:
+ 106:bsp/usart/usart1_k230.c ****                          (uint16_t)(write_pos - read_pos));
+ 107:bsp/usart/usart1_k230.c ****     } else {
+ 108:bsp/usart/usart1_k230.c ****         /* 已回绕 */
+ 109:bsp/usart/usart1_k230.c ****         K230UsartDeliver(instance, &instance->rx_dma_buf[read_pos],
+ 110:bsp/usart/usart1_k230.c ****                          (uint16_t)(instance->rx_dma_buf_size - read_pos));
+ 111:bsp/usart/usart1_k230.c ****         K230UsartDeliver(instance, instance->rx_dma_buf, write_pos);
+ 112:bsp/usart/usart1_k230.c ****     }
+ 113:bsp/usart/usart1_k230.c **** 
+ 114:bsp/usart/usart1_k230.c ****     /* 传输完成事件时 HAL 传的 Size 等于缓冲全长，这里归一化到 0，
+ 115:bsp/usart/usart1_k230.c ****        让读指针始终落在 [0, buf_size) 内。语义不变：位置 buf_size 与 0
+ 116:bsp/usart/usart1_k230.c ****        指向同一处，下一次事件照常算出增量。 */
+ 117:bsp/usart/usart1_k230.c ****     instance->rx_read_pos = (write_pos == instance->rx_dma_buf_size) ? 0u : write_pos;
+ 197              		.loc 1 117 5 is_stmt 1 view .LVU48
+ 198              		.loc 1 117 51 is_stmt 0 view .LVU49
+ 199 0020 A389     		ldrh	r3, [r4, #12]
+ 200              		.loc 1 117 27 view .LVU50
+ 201 0022 AB42     		cmp	r3, r5
+ 202 0024 11D0     		beq	.L26
+ 203              	.LVL15:
+ 204              	.L22:
+ 205              		.loc 1 117 27 discriminator 4 view .LVU51
+ 206 0026 6583     		strh	r5, [r4, #26]	@ movhi
+ 207              	.LVL16:
+ 208              	.L17:
+ 118:bsp/usart/usart1_k230.c **** }
+ 209              		.loc 1 118 1 view .LVU52
+ 210 0028 38BD     		pop	{r3, r4, r5, pc}
+ 211              	.LVL17:
+ 212              	.L25:
+  94:bsp/usart/usart1_k230.c ****         return;
+ 213              		.loc 1 94 9 is_stmt 1 view .LVU53
+  94:bsp/usart/usart1_k230.c ****         return;
+ 214              		.loc 1 94 17 is_stmt 0 view .LVU54
+ 215 002a 436A     		ldr	r3, [r0, #36]
+  94:bsp/usart/usart1_k230.c ****         return;
+ 216              		.loc 1 94 30 view .LVU55
+ 217 002c 0133     		adds	r3, r3, #1
+ 218 002e 4362     		str	r3, [r0, #36]
+  95:bsp/usart/usart1_k230.c ****     }
+ 219              		.loc 1 95 9 is_stmt 1 view .LVU56
+ 220 0030 FAE7     		b	.L17
+ 221              	.LVL18:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 7
+
+
+ 222              	.L20:
+ 109:bsp/usart/usart1_k230.c ****                          (uint16_t)(instance->rx_dma_buf_size - read_pos));
+ 223              		.loc 1 109 9 view .LVU57
+ 109:bsp/usart/usart1_k230.c ****                          (uint16_t)(instance->rx_dma_buf_size - read_pos));
+ 224              		.loc 1 109 45 is_stmt 0 view .LVU58
+ 225 0032 8168     		ldr	r1, [r0, #8]
+ 226              	.LVL19:
+ 109:bsp/usart/usart1_k230.c ****                          (uint16_t)(instance->rx_dma_buf_size - read_pos));
+ 227              		.loc 1 109 9 view .LVU59
+ 228 0034 D21A     		subs	r2, r2, r3
+ 229 0036 92B2     		uxth	r2, r2
+ 230 0038 1944     		add	r1, r1, r3
+ 231 003a FFF7FEFF 		bl	K230UsartDeliver
+ 232              	.LVL20:
+ 111:bsp/usart/usart1_k230.c ****     }
+ 233              		.loc 1 111 9 is_stmt 1 view .LVU60
+ 234 003e 2A46     		mov	r2, r5
+ 235 0040 A168     		ldr	r1, [r4, #8]
+ 236 0042 2046     		mov	r0, r4
+ 237 0044 FFF7FEFF 		bl	K230UsartDeliver
+ 238              	.LVL21:
+ 239 0048 EAE7     		b	.L21
+ 240              	.L26:
+ 117:bsp/usart/usart1_k230.c **** }
+ 241              		.loc 1 117 27 is_stmt 0 discriminator 2 view .LVU61
+ 242 004a 0025     		movs	r5, #0
+ 243              	.LVL22:
+ 117:bsp/usart/usart1_k230.c **** }
+ 244              		.loc 1 117 27 discriminator 2 view .LVU62
+ 245 004c EBE7     		b	.L22
+ 246              		.cfi_endproc
+ 247              	.LFE68:
+ 249              		.section	.text.K230UsartRearm,"ax",%progbits
+ 250              		.align	1
+ 251              		.syntax unified
+ 252              		.thumb
+ 253              		.thumb_func
+ 255              	K230UsartRearm:
+ 256              	.LVL23:
+ 257              	.LFB67:
+  70:bsp/usart/usart1_k230.c ****     if (HAL_UARTEx_ReceiveToIdle_DMA(instance->uart_handle,
+ 258              		.loc 1 70 1 is_stmt 1 view -0
+ 259              		.cfi_startproc
+ 260              		@ args = 0, pretend = 0, frame = 0
+ 261              		@ frame_needed = 0, uses_anonymous_args = 0
+  70:bsp/usart/usart1_k230.c ****     if (HAL_UARTEx_ReceiveToIdle_DMA(instance->uart_handle,
+ 262              		.loc 1 70 1 is_stmt 0 view .LVU64
+ 263 0000 10B5     		push	{r4, lr}
+ 264              	.LCFI3:
+ 265              		.cfi_def_cfa_offset 8
+ 266              		.cfi_offset 4, -8
+ 267              		.cfi_offset 14, -4
+ 268 0002 0446     		mov	r4, r0
+  71:bsp/usart/usart1_k230.c ****                                      instance->rx_dma_buf,
+ 269              		.loc 1 71 5 is_stmt 1 view .LVU65
+  71:bsp/usart/usart1_k230.c ****                                      instance->rx_dma_buf,
+ 270              		.loc 1 71 9 is_stmt 0 view .LVU66
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 8
+
+
+ 271 0004 8289     		ldrh	r2, [r0, #12]
+ 272 0006 8168     		ldr	r1, [r0, #8]
+ 273 0008 0068     		ldr	r0, [r0]
+ 274              	.LVL24:
+  71:bsp/usart/usart1_k230.c ****                                      instance->rx_dma_buf,
+ 275              		.loc 1 71 9 view .LVU67
+ 276 000a FFF7FEFF 		bl	HAL_UARTEx_ReceiveToIdle_DMA
+ 277              	.LVL25:
+  71:bsp/usart/usart1_k230.c ****                                      instance->rx_dma_buf,
+ 278              		.loc 1 71 8 discriminator 1 view .LVU68
+ 279 000e 10B1     		cbz	r0, .L27
+  75:bsp/usart/usart1_k230.c ****     }
+ 280              		.loc 1 75 9 is_stmt 1 view .LVU69
+  75:bsp/usart/usart1_k230.c ****     }
+ 281              		.loc 1 75 17 is_stmt 0 view .LVU70
+ 282 0010 636A     		ldr	r3, [r4, #36]
+  75:bsp/usart/usart1_k230.c ****     }
+ 283              		.loc 1 75 30 view .LVU71
+ 284 0012 0133     		adds	r3, r3, #1
+ 285 0014 6362     		str	r3, [r4, #36]
+ 286              	.L27:
+  77:bsp/usart/usart1_k230.c **** 
+ 287              		.loc 1 77 1 view .LVU72
+ 288 0016 10BD     		pop	{r4, pc}
+  77:bsp/usart/usart1_k230.c **** 
+ 289              		.loc 1 77 1 view .LVU73
+ 290              		.cfi_endproc
+ 291              	.LFE67:
+ 293              		.section	.text.K230UsartRegister,"ax",%progbits
+ 294              		.align	1
+ 295              		.global	K230UsartRegister
+ 296              		.syntax unified
+ 297              		.thumb
+ 298              		.thumb_func
+ 300              	K230UsartRegister:
+ 301              	.LVL26:
+ 302              	.LFB69:
+ 119:bsp/usart/usart1_k230.c **** 
+ 120:bsp/usart/usart1_k230.c **** /* ============================ 外部接口 ============================ */
+ 121:bsp/usart/usart1_k230.c **** 
+ 122:bsp/usart/usart1_k230.c **** K230UsartInstance *K230UsartRegister(const K230Usart_Init_Config_s *config)
+ 123:bsp/usart/usart1_k230.c **** {
+ 303              		.loc 1 123 1 is_stmt 1 view -0
+ 304              		.cfi_startproc
+ 305              		@ args = 0, pretend = 0, frame = 0
+ 306              		@ frame_needed = 0, uses_anonymous_args = 0
+ 307              		.loc 1 123 1 is_stmt 0 view .LVU75
+ 308 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 309              	.LCFI4:
+ 310              		.cfi_def_cfa_offset 24
+ 311              		.cfi_offset 3, -24
+ 312              		.cfi_offset 4, -20
+ 313              		.cfi_offset 5, -16
+ 314              		.cfi_offset 6, -12
+ 315              		.cfi_offset 7, -8
+ 316              		.cfi_offset 14, -4
+ 124:bsp/usart/usart1_k230.c ****     if ((config == NULL) ||
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 9
+
+
+ 317              		.loc 1 124 5 is_stmt 1 view .LVU76
+ 318              		.loc 1 124 8 is_stmt 0 view .LVU77
+ 319 0002 0546     		mov	r5, r0
+ 320 0004 0028     		cmp	r0, #0
+ 321 0006 3AD0     		beq	.L36
+ 125:bsp/usart/usart1_k230.c ****         (config->uart_handle == NULL) ||
+ 322              		.loc 1 125 16 view .LVU78
+ 323 0008 0468     		ldr	r4, [r0]
+ 124:bsp/usart/usart1_k230.c ****     if ((config == NULL) ||
+ 324              		.loc 1 124 26 discriminator 1 view .LVU79
+ 325 000a 002C     		cmp	r4, #0
+ 326 000c 35D0     		beq	.L30
+ 126:bsp/usart/usart1_k230.c ****         (config->rx_dma_buf == NULL) ||
+ 327              		.loc 1 126 16 view .LVU80
+ 328 000e 4368     		ldr	r3, [r0, #4]
+ 125:bsp/usart/usart1_k230.c ****         (config->uart_handle == NULL) ||
+ 329              		.loc 1 125 39 view .LVU81
+ 330 0010 002B     		cmp	r3, #0
+ 331 0012 36D0     		beq	.L37
+ 127:bsp/usart/usart1_k230.c ****         (config->rx_dma_buf_size == 0u)) {
+ 332              		.loc 1 127 16 view .LVU82
+ 333 0014 0389     		ldrh	r3, [r0, #8]
+ 126:bsp/usart/usart1_k230.c ****         (config->rx_dma_buf == NULL) ||
+ 334              		.loc 1 126 38 view .LVU83
+ 335 0016 002B     		cmp	r3, #0
+ 336 0018 35D0     		beq	.L38
+ 128:bsp/usart/usart1_k230.c ****         return NULL;
+ 129:bsp/usart/usart1_k230.c ****     }
+ 130:bsp/usart/usart1_k230.c **** 
+ 131:bsp/usart/usart1_k230.c ****     /* CubeMX 未关联 RX DMA 时无法工作，这里提前拦住，避免上电后静默不收�
+ 132:bsp/usart/usart1_k230.c ****     if (config->uart_handle->hdmarx == NULL) {
+ 337              		.loc 1 132 5 is_stmt 1 view .LVU84
+ 338              		.loc 1 132 28 is_stmt 0 view .LVU85
+ 339 001a E46B     		ldr	r4, [r4, #60]
+ 340              		.loc 1 132 8 view .LVU86
+ 341 001c 6CB3     		cbz	r4, .L30
+ 342              	.LBB4:
+ 133:bsp/usart/usart1_k230.c ****         return NULL;
+ 134:bsp/usart/usart1_k230.c ****     }
+ 135:bsp/usart/usart1_k230.c **** 
+ 136:bsp/usart/usart1_k230.c ****     K230UsartInstance *instance = NULL;
+ 137:bsp/usart/usart1_k230.c ****     for (uint8_t i = 0u; i < K230_USART_MAX_INSTANCE; i++) {
+ 343              		.loc 1 137 18 view .LVU87
+ 344 001e 0023     		movs	r3, #0
+ 345              	.L32:
+ 346              	.LVL27:
+ 347              		.loc 1 137 28 is_stmt 1 discriminator 1 view .LVU88
+ 348 0020 012B     		cmp	r3, #1
+ 349 0022 29D8     		bhi	.L41
+ 138:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == NULL) {
+ 350              		.loc 1 138 9 view .LVU89
+ 351              		.loc 1 138 31 is_stmt 0 view .LVU90
+ 352 0024 03EB8302 		add	r2, r3, r3, lsl #2
+ 353 0028 1849     		ldr	r1, .L44
+ 354 002a 51F83220 		ldr	r2, [r1, r2, lsl #3]
+ 355              		.loc 1 138 12 view .LVU91
+ 356 002e 12B1     		cbz	r2, .L42
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 10
+
+
+ 137:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == NULL) {
+ 357              		.loc 1 137 56 is_stmt 1 discriminator 2 view .LVU92
+ 358 0030 0133     		adds	r3, r3, #1
+ 359              	.LVL28:
+ 137:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == NULL) {
+ 360              		.loc 1 137 56 is_stmt 0 discriminator 2 view .LVU93
+ 361 0032 DBB2     		uxtb	r3, r3
+ 362              	.LVL29:
+ 137:bsp/usart/usart1_k230.c ****         if (k230_usart_pool[i].uart_handle == NULL) {
+ 363              		.loc 1 137 56 discriminator 2 view .LVU94
+ 364 0034 F4E7     		b	.L32
+ 365              	.LVL30:
+ 366              	.L42:
+ 139:bsp/usart/usart1_k230.c ****             instance = &k230_usart_pool[i];
+ 367              		.loc 1 139 13 is_stmt 1 view .LVU95
+ 368              		.loc 1 139 22 is_stmt 0 view .LVU96
+ 369 0036 03EB8303 		add	r3, r3, r3, lsl #2
+ 370              	.LVL31:
+ 371              		.loc 1 139 22 view .LVU97
+ 372 003a DF00     		lsls	r7, r3, #3
+ 373 003c 0E46     		mov	r6, r1
+ 374 003e 01EBC304 		add	r4, r1, r3, lsl #3
+ 375              	.LVL32:
+ 140:bsp/usart/usart1_k230.c ****             break;
+ 376              		.loc 1 140 13 is_stmt 1 view .LVU98
+ 377              		.loc 1 140 13 is_stmt 0 view .LVU99
+ 378              	.LBE4:
+ 141:bsp/usart/usart1_k230.c ****         }
+ 142:bsp/usart/usart1_k230.c ****     }
+ 143:bsp/usart/usart1_k230.c ****     if (instance == NULL) {
+ 379              		.loc 1 143 5 is_stmt 1 view .LVU100
+ 144:bsp/usart/usart1_k230.c ****         return NULL; /* 实例池已满 */
+ 145:bsp/usart/usart1_k230.c ****     }
+ 146:bsp/usart/usart1_k230.c **** 
+ 147:bsp/usart/usart1_k230.c ****     memset(instance, 0, sizeof(K230UsartInstance));
+ 380              		.loc 1 147 5 view .LVU101
+ 381 0042 2822     		movs	r2, #40
+ 382 0044 0021     		movs	r1, #0
+ 383 0046 2046     		mov	r0, r4
+ 384              	.LVL33:
+ 385              		.loc 1 147 5 is_stmt 0 view .LVU102
+ 386 0048 FFF7FEFF 		bl	memset
+ 387              	.LVL34:
+ 148:bsp/usart/usart1_k230.c **** 
+ 149:bsp/usart/usart1_k230.c ****     instance->uart_handle     = config->uart_handle;
+ 388              		.loc 1 149 5 is_stmt 1 view .LVU103
+ 389              		.loc 1 149 39 is_stmt 0 view .LVU104
+ 390 004c 2B68     		ldr	r3, [r5]
+ 391              		.loc 1 149 31 view .LVU105
+ 392 004e F351     		str	r3, [r6, r7]
+ 150:bsp/usart/usart1_k230.c ****     instance->dma_handle      = config->uart_handle->hdmarx;
+ 393              		.loc 1 150 5 is_stmt 1 view .LVU106
+ 394              		.loc 1 150 52 is_stmt 0 view .LVU107
+ 395 0050 DB6B     		ldr	r3, [r3, #60]
+ 396              		.loc 1 150 31 view .LVU108
+ 397 0052 6360     		str	r3, [r4, #4]
+ 151:bsp/usart/usart1_k230.c ****     instance->rx_dma_buf      = config->rx_dma_buf;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 11
+
+
+ 398              		.loc 1 151 5 is_stmt 1 view .LVU109
+ 399              		.loc 1 151 39 is_stmt 0 view .LVU110
+ 400 0054 6B68     		ldr	r3, [r5, #4]
+ 401              		.loc 1 151 31 view .LVU111
+ 402 0056 A360     		str	r3, [r4, #8]
+ 152:bsp/usart/usart1_k230.c ****     instance->rx_dma_buf_size = config->rx_dma_buf_size;
+ 403              		.loc 1 152 5 is_stmt 1 view .LVU112
+ 404              		.loc 1 152 39 is_stmt 0 view .LVU113
+ 405 0058 2B89     		ldrh	r3, [r5, #8]
+ 406              		.loc 1 152 31 view .LVU114
+ 407 005a A381     		strh	r3, [r4, #12]	@ movhi
+ 153:bsp/usart/usart1_k230.c ****     instance->parent          = config->parent;
+ 408              		.loc 1 153 5 is_stmt 1 view .LVU115
+ 409              		.loc 1 153 39 is_stmt 0 view .LVU116
+ 410 005c EB68     		ldr	r3, [r5, #12]
+ 411              		.loc 1 153 31 view .LVU117
+ 412 005e 2361     		str	r3, [r4, #16]
+ 154:bsp/usart/usart1_k230.c ****     instance->rx_callback     = config->rx_callback;
+ 413              		.loc 1 154 5 is_stmt 1 view .LVU118
+ 414              		.loc 1 154 39 is_stmt 0 view .LVU119
+ 415 0060 2B69     		ldr	r3, [r5, #16]
+ 416              		.loc 1 154 31 view .LVU120
+ 417 0062 6361     		str	r3, [r4, #20]
+ 155:bsp/usart/usart1_k230.c **** 
+ 156:bsp/usart/usart1_k230.c ****     /* 模式在这里缓存一次，中断里就不必反复读结构体 */
+ 157:bsp/usart/usart1_k230.c ****     instance->dma_circular = (config->uart_handle->hdmarx->Init.Mode == DMA_CIRCULAR) ? 1u : 0u;
+ 418              		.loc 1 157 5 is_stmt 1 view .LVU121
+ 419              		.loc 1 157 37 is_stmt 0 view .LVU122
+ 420 0064 2B68     		ldr	r3, [r5]
+ 421              		.loc 1 157 50 view .LVU123
+ 422 0066 DB6B     		ldr	r3, [r3, #60]
+ 423              		.loc 1 157 64 view .LVU124
+ 424 0068 9B69     		ldr	r3, [r3, #24]
+ 425              		.loc 1 157 28 view .LVU125
+ 426 006a 202B     		cmp	r3, #32
+ 427 006c 02D0     		beq	.L43
+ 428              		.loc 1 157 28 discriminator 2 view .LVU126
+ 429 006e 0023     		movs	r3, #0
+ 430              	.L34:
+ 431              		.loc 1 157 28 discriminator 4 view .LVU127
+ 432 0070 2376     		strb	r3, [r4, #24]
+ 158:bsp/usart/usart1_k230.c **** 
+ 159:bsp/usart/usart1_k230.c ****     return instance;
+ 433              		.loc 1 159 5 is_stmt 1 view .LVU128
+ 434              		.loc 1 159 12 is_stmt 0 view .LVU129
+ 435 0072 02E0     		b	.L30
+ 436              	.L43:
+ 157:bsp/usart/usart1_k230.c **** 
+ 437              		.loc 1 157 28 discriminator 1 view .LVU130
+ 438 0074 0123     		movs	r3, #1
+ 439 0076 FBE7     		b	.L34
+ 440              	.LVL35:
+ 441              	.L41:
+ 144:bsp/usart/usart1_k230.c ****     }
+ 442              		.loc 1 144 16 view .LVU131
+ 443 0078 0024     		movs	r4, #0
+ 444              	.LVL36:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 12
+
+
+ 445              	.L30:
+ 160:bsp/usart/usart1_k230.c **** }
+ 446              		.loc 1 160 1 view .LVU132
+ 447 007a 2046     		mov	r0, r4
+ 448 007c F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 449              	.LVL37:
+ 450              	.L36:
+ 128:bsp/usart/usart1_k230.c ****     }
+ 451              		.loc 1 128 16 view .LVU133
+ 452 007e 0446     		mov	r4, r0
+ 453 0080 FBE7     		b	.L30
+ 454              	.L37:
+ 128:bsp/usart/usart1_k230.c ****     }
+ 455              		.loc 1 128 16 view .LVU134
+ 456 0082 1C46     		mov	r4, r3
+ 457 0084 F9E7     		b	.L30
+ 458              	.L38:
+ 459 0086 0024     		movs	r4, #0
+ 460 0088 F7E7     		b	.L30
+ 461              	.L45:
+ 462 008a 00BF     		.align	2
+ 463              	.L44:
+ 464 008c 00000000 		.word	k230_usart_pool
+ 465              		.cfi_endproc
+ 466              	.LFE69:
+ 468              		.section	.text.K230UsartStart,"ax",%progbits
+ 469              		.align	1
+ 470              		.global	K230UsartStart
+ 471              		.syntax unified
+ 472              		.thumb
+ 473              		.thumb_func
+ 475              	K230UsartStart:
+ 476              	.LVL38:
+ 477              	.LFB70:
+ 161:bsp/usart/usart1_k230.c **** 
+ 162:bsp/usart/usart1_k230.c **** HAL_StatusTypeDef K230UsartStart(K230UsartInstance *instance)
+ 163:bsp/usart/usart1_k230.c **** {
+ 478              		.loc 1 163 1 is_stmt 1 view -0
+ 479              		.cfi_startproc
+ 480              		@ args = 0, pretend = 0, frame = 8
+ 481              		@ frame_needed = 0, uses_anonymous_args = 0
+ 164:bsp/usart/usart1_k230.c ****     if (instance == NULL) {
+ 482              		.loc 1 164 5 view .LVU136
+ 483              		.loc 1 164 8 is_stmt 0 view .LVU137
+ 484 0000 C0B1     		cbz	r0, .L48
+ 163:bsp/usart/usart1_k230.c ****     if (instance == NULL) {
+ 485              		.loc 1 163 1 view .LVU138
+ 486 0002 10B5     		push	{r4, lr}
+ 487              	.LCFI5:
+ 488              		.cfi_def_cfa_offset 8
+ 489              		.cfi_offset 4, -8
+ 490              		.cfi_offset 14, -4
+ 491 0004 82B0     		sub	sp, sp, #8
+ 492              	.LCFI6:
+ 493              		.cfi_def_cfa_offset 16
+ 494 0006 0346     		mov	r3, r0
+ 165:bsp/usart/usart1_k230.c ****         return HAL_ERROR;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 13
+
+
+ 166:bsp/usart/usart1_k230.c ****     }
+ 167:bsp/usart/usart1_k230.c **** 
+ 168:bsp/usart/usart1_k230.c ****     /* 清掉可能残留的空闲/过载标志。若启动瞬间 SR 里带着 ORE，
+ 169:bsp/usart/usart1_k230.c ****        HAL 会认为接收已被中止并直接返回 HAL_ERROR */
+ 170:bsp/usart/usart1_k230.c ****     __HAL_UART_CLEAR_IDLEFLAG(instance->uart_handle);
+ 495              		.loc 1 170 5 is_stmt 1 view .LVU139
+ 496              	.LBB5:
+ 497              		.loc 1 170 5 view .LVU140
+ 498 0008 0021     		movs	r1, #0
+ 499 000a 0091     		str	r1, [sp]
+ 500              		.loc 1 170 5 view .LVU141
+ 501 000c 0068     		ldr	r0, [r0]
+ 502              	.LVL39:
+ 503              		.loc 1 170 5 is_stmt 0 view .LVU142
+ 504 000e 0268     		ldr	r2, [r0]
+ 505 0010 1468     		ldr	r4, [r2]
+ 506 0012 0094     		str	r4, [sp]
+ 507              		.loc 1 170 5 is_stmt 1 view .LVU143
+ 508 0014 5468     		ldr	r4, [r2, #4]
+ 509 0016 0094     		str	r4, [sp]
+ 510              		.loc 1 170 5 view .LVU144
+ 511 0018 009C     		ldr	r4, [sp]
+ 512              	.LBE5:
+ 513              		.loc 1 170 5 view .LVU145
+ 171:bsp/usart/usart1_k230.c ****     __HAL_UART_CLEAR_OREFLAG(instance->uart_handle);
+ 514              		.loc 1 171 5 view .LVU146
+ 515              	.LBB6:
+ 516              		.loc 1 171 5 view .LVU147
+ 517 001a 0191     		str	r1, [sp, #4]
+ 518              		.loc 1 171 5 view .LVU148
+ 519 001c 1468     		ldr	r4, [r2]
+ 520 001e 0194     		str	r4, [sp, #4]
+ 521              		.loc 1 171 5 view .LVU149
+ 522 0020 5268     		ldr	r2, [r2, #4]
+ 523 0022 0192     		str	r2, [sp, #4]
+ 524              		.loc 1 171 5 view .LVU150
+ 525 0024 019A     		ldr	r2, [sp, #4]
+ 526              	.LBE6:
+ 527              		.loc 1 171 5 view .LVU151
+ 172:bsp/usart/usart1_k230.c **** 
+ 173:bsp/usart/usart1_k230.c ****     /* 从缓冲起点重新开始计数，读指针必须一起归零 */
+ 174:bsp/usart/usart1_k230.c ****     instance->rx_read_pos = 0u;
+ 528              		.loc 1 174 5 view .LVU152
+ 529              		.loc 1 174 27 is_stmt 0 view .LVU153
+ 530 0026 5983     		strh	r1, [r3, #26]	@ movhi
+ 175:bsp/usart/usart1_k230.c **** 
+ 176:bsp/usart/usart1_k230.c ****     return HAL_UARTEx_ReceiveToIdle_DMA(instance->uart_handle,
+ 531              		.loc 1 176 5 is_stmt 1 view .LVU154
+ 532              		.loc 1 176 12 is_stmt 0 view .LVU155
+ 533 0028 9A89     		ldrh	r2, [r3, #12]
+ 534 002a 9968     		ldr	r1, [r3, #8]
+ 535 002c FFF7FEFF 		bl	HAL_UARTEx_ReceiveToIdle_DMA
+ 536              	.LVL40:
+ 177:bsp/usart/usart1_k230.c ****                                         instance->rx_dma_buf,
+ 178:bsp/usart/usart1_k230.c ****                                         instance->rx_dma_buf_size);
+ 179:bsp/usart/usart1_k230.c **** }
+ 537              		.loc 1 179 1 view .LVU156
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 14
+
+
+ 538 0030 02B0     		add	sp, sp, #8
+ 539              	.LCFI7:
+ 540              		.cfi_def_cfa_offset 8
+ 541              		@ sp needed
+ 542 0032 10BD     		pop	{r4, pc}
+ 543              	.LVL41:
+ 544              	.L48:
+ 545              	.LCFI8:
+ 546              		.cfi_def_cfa_offset 0
+ 547              		.cfi_restore 4
+ 548              		.cfi_restore 14
+ 165:bsp/usart/usart1_k230.c ****     }
+ 549              		.loc 1 165 16 view .LVU157
+ 550 0034 0120     		movs	r0, #1
+ 551              	.LVL42:
+ 552              		.loc 1 179 1 view .LVU158
+ 553 0036 7047     		bx	lr
+ 554              		.cfi_endproc
+ 555              	.LFE70:
+ 557              		.section	.text.K230UsartGetStats,"ax",%progbits
+ 558              		.align	1
+ 559              		.global	K230UsartGetStats
+ 560              		.syntax unified
+ 561              		.thumb
+ 562              		.thumb_func
+ 564              	K230UsartGetStats:
+ 565              	.LVL43:
+ 566              	.LFB71:
+ 180:bsp/usart/usart1_k230.c **** 
+ 181:bsp/usart/usart1_k230.c **** void K230UsartGetStats(const K230UsartInstance *instance, K230Usart_Stats_s *stats_out)
+ 182:bsp/usart/usart1_k230.c **** {
+ 567              		.loc 1 182 1 is_stmt 1 view -0
+ 568              		.cfi_startproc
+ 569              		@ args = 0, pretend = 0, frame = 0
+ 570              		@ frame_needed = 0, uses_anonymous_args = 0
+ 571              		@ link register save eliminated.
+ 183:bsp/usart/usart1_k230.c ****     if ((instance == NULL) || (stats_out == NULL)) {
+ 572              		.loc 1 183 5 view .LVU160
+ 573              		.loc 1 183 8 is_stmt 0 view .LVU161
+ 574 0000 30B1     		cbz	r0, .L53
+ 575              		.loc 1 183 28 discriminator 1 view .LVU162
+ 576 0002 29B1     		cbz	r1, .L53
+ 184:bsp/usart/usart1_k230.c ****         return;
+ 185:bsp/usart/usart1_k230.c ****     }
+ 186:bsp/usart/usart1_k230.c **** 
+ 187:bsp/usart/usart1_k230.c ****     stats_out->rx_chunk_count = instance->rx_chunk_count;
+ 577              		.loc 1 187 5 is_stmt 1 view .LVU163
+ 578              		.loc 1 187 41 is_stmt 0 view .LVU164
+ 579 0004 C269     		ldr	r2, [r0, #28]
+ 580              		.loc 1 187 31 view .LVU165
+ 581 0006 0A60     		str	r2, [r1]
+ 188:bsp/usart/usart1_k230.c ****     stats_out->rx_byte_count  = instance->rx_byte_count;
+ 582              		.loc 1 188 5 is_stmt 1 view .LVU166
+ 583              		.loc 1 188 41 is_stmt 0 view .LVU167
+ 584 0008 026A     		ldr	r2, [r0, #32]
+ 585              		.loc 1 188 31 view .LVU168
+ 586 000a 4A60     		str	r2, [r1, #4]
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 15
+
+
+ 189:bsp/usart/usart1_k230.c ****     stats_out->error_count    = instance->error_count;
+ 587              		.loc 1 189 5 is_stmt 1 view .LVU169
+ 588              		.loc 1 189 41 is_stmt 0 view .LVU170
+ 589 000c 436A     		ldr	r3, [r0, #36]
+ 590              		.loc 1 189 31 view .LVU171
+ 591 000e 8B60     		str	r3, [r1, #8]
+ 592              	.L53:
+ 190:bsp/usart/usart1_k230.c **** }
+ 593              		.loc 1 190 1 view .LVU172
+ 594 0010 7047     		bx	lr
+ 595              		.cfi_endproc
+ 596              	.LFE71:
+ 598              		.section	.text.HAL_UARTEx_RxEventCallback,"ax",%progbits
+ 599              		.align	1
+ 600              		.global	HAL_UARTEx_RxEventCallback
+ 601              		.syntax unified
+ 602              		.thumb
+ 603              		.thumb_func
+ 605              	HAL_UARTEx_RxEventCallback:
+ 606              	.LVL44:
+ 607              	.LFB72:
+ 191:bsp/usart/usart1_k230.c **** 
+ 192:bsp/usart/usart1_k230.c **** /* ==========================================================================
+ 193:bsp/usart/usart1_k230.c ****  * HAL 回调：本文件是 BSP 层，允许直接接触 HAL 中断回调（开发规范 §2.4）
+ 194:bsp/usart/usart1_k230.c ****  * ========================================================================== */
+ 195:bsp/usart/usart1_k230.c **** 
+ 196:bsp/usart/usart1_k230.c **** /**
+ 197:bsp/usart/usart1_k230.c ****  * @brief 接收事件回调：空闲中断（IDLE）、半传输（HT）或传输完成（TC）时
+ 198:bsp/usart/usart1_k230.c ****  *
+ 199:bsp/usart/usart1_k230.c ****  * @param huart 触发事件的串口句柄。
+ 200:bsp/usart/usart1_k230.c ****  * @param Size  含义随 DMA 模式而变：
+ 201:bsp/usart/usart1_k230.c ****  *              Circular 下是「写指针位置」（累计，非增量）；
+ 202:bsp/usart/usart1_k230.c ****  *              Normal 下是「本次收到的字节数」。
+ 203:bsp/usart/usart1_k230.c ****  */
+ 204:bsp/usart/usart1_k230.c **** void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+ 205:bsp/usart/usart1_k230.c **** {
+ 608              		.loc 1 205 1 is_stmt 1 view -0
+ 609              		.cfi_startproc
+ 610              		@ args = 0, pretend = 0, frame = 0
+ 611              		@ frame_needed = 0, uses_anonymous_args = 0
+ 612              		.loc 1 205 1 is_stmt 0 view .LVU174
+ 613 0000 38B5     		push	{r3, r4, r5, lr}
+ 614              	.LCFI9:
+ 615              		.cfi_def_cfa_offset 16
+ 616              		.cfi_offset 3, -16
+ 617              		.cfi_offset 4, -12
+ 618              		.cfi_offset 5, -8
+ 619              		.cfi_offset 14, -4
+ 620 0002 0C46     		mov	r4, r1
+ 206:bsp/usart/usart1_k230.c ****     K230UsartInstance *instance = K230UsartFindInstance(huart);
+ 621              		.loc 1 206 5 is_stmt 1 view .LVU175
+ 622              		.loc 1 206 35 is_stmt 0 view .LVU176
+ 623 0004 FFF7FEFF 		bl	K230UsartFindInstance
+ 624              	.LVL45:
+ 207:bsp/usart/usart1_k230.c ****     if (instance == NULL) {
+ 625              		.loc 1 207 5 is_stmt 1 view .LVU177
+ 626              		.loc 1 207 8 is_stmt 0 view .LVU178
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 16
+
+
+ 627 0008 30B1     		cbz	r0, .L55
+ 628 000a 0546     		mov	r5, r0
+ 208:bsp/usart/usart1_k230.c ****         return;
+ 209:bsp/usart/usart1_k230.c ****     }
+ 210:bsp/usart/usart1_k230.c **** 
+ 211:bsp/usart/usart1_k230.c ****     if (instance->dma_circular != 0u) {
+ 629              		.loc 1 211 5 is_stmt 1 view .LVU179
+ 630              		.loc 1 211 17 is_stmt 0 view .LVU180
+ 631 000c 037E     		ldrb	r3, [r0, #24]	@ zero_extendqisi2
+ 632              		.loc 1 211 8 view .LVU181
+ 633 000e 23B9     		cbnz	r3, .L60
+ 212:bsp/usart/usart1_k230.c ****         /* DMA 不会停，不需要重挂；按写指针位置算增量 */
+ 213:bsp/usart/usart1_k230.c ****         K230UsartDeliverCircular(instance, Size);
+ 214:bsp/usart/usart1_k230.c ****     } else {
+ 215:bsp/usart/usart1_k230.c ****         /* Normal 模式：本次事件后 DMA 已停止、缓冲即将被下次接收覆盖，
+ 216:bsp/usart/usart1_k230.c ****            所以必须先交付、再重挂 */
+ 217:bsp/usart/usart1_k230.c ****         if (Size > 0u) {
+ 634              		.loc 1 217 9 is_stmt 1 view .LVU182
+ 635              		.loc 1 217 12 is_stmt 0 view .LVU183
+ 636 0010 3CB9     		cbnz	r4, .L61
+ 637              	.LVL46:
+ 638              	.L58:
+ 218:bsp/usart/usart1_k230.c ****             K230UsartDeliver(instance, instance->rx_dma_buf, Size);
+ 219:bsp/usart/usart1_k230.c ****         }
+ 220:bsp/usart/usart1_k230.c ****         K230UsartRearm(instance);
+ 639              		.loc 1 220 9 is_stmt 1 view .LVU184
+ 640 0012 2846     		mov	r0, r5
+ 641 0014 FFF7FEFF 		bl	K230UsartRearm
+ 642              	.LVL47:
+ 643              	.L55:
+ 221:bsp/usart/usart1_k230.c ****     }
+ 222:bsp/usart/usart1_k230.c **** }
+ 644              		.loc 1 222 1 is_stmt 0 view .LVU185
+ 645 0018 38BD     		pop	{r3, r4, r5, pc}
+ 646              	.LVL48:
+ 647              	.L60:
+ 213:bsp/usart/usart1_k230.c ****     } else {
+ 648              		.loc 1 213 9 is_stmt 1 view .LVU186
+ 649 001a 2146     		mov	r1, r4
+ 650 001c FFF7FEFF 		bl	K230UsartDeliverCircular
+ 651              	.LVL49:
+ 213:bsp/usart/usart1_k230.c ****     } else {
+ 652              		.loc 1 213 9 is_stmt 0 view .LVU187
+ 653 0020 FAE7     		b	.L55
+ 654              	.LVL50:
+ 655              	.L61:
+ 218:bsp/usart/usart1_k230.c ****             K230UsartDeliver(instance, instance->rx_dma_buf, Size);
+ 656              		.loc 1 218 13 is_stmt 1 view .LVU188
+ 657 0022 2246     		mov	r2, r4
+ 658 0024 8168     		ldr	r1, [r0, #8]
+ 659 0026 FFF7FEFF 		bl	K230UsartDeliver
+ 660              	.LVL51:
+ 218:bsp/usart/usart1_k230.c ****             K230UsartDeliver(instance, instance->rx_dma_buf, Size);
+ 661              		.loc 1 218 13 is_stmt 0 view .LVU189
+ 662 002a F2E7     		b	.L58
+ 663              		.cfi_endproc
+ 664              	.LFE72:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 17
+
+
+ 666              		.section	.text.HAL_UART_ErrorCallback,"ax",%progbits
+ 667              		.align	1
+ 668              		.global	HAL_UART_ErrorCallback
+ 669              		.syntax unified
+ 670              		.thumb
+ 671              		.thumb_func
+ 673              	HAL_UART_ErrorCallback:
+ 674              	.LVL52:
+ 675              	.LFB73:
+ 223:bsp/usart/usart1_k230.c **** 
+ 224:bsp/usart/usart1_k230.c **** /**
+ 225:bsp/usart/usart1_k230.c ****  * @brief 串口错误回调，在 DMA 中止完成后被调用。
+ 226:bsp/usart/usart1_k230.c ****  *
+ 227:bsp/usart/usart1_k230.c ****  * @note 过载(ORE)/帧错误/噪声错误都会让 HAL 结束本轮接收 —— 这一点
+ 228:bsp/usart/usart1_k230.c ****  *       两种 DMA 模式都一样，所以这里**必须无条件重挂**，否则一次线路
+ 229:bsp/usart/usart1_k230.c ****  *       干扰就足以让视觉数据永久停更（规范 §12.1 的 fail-safe）。
+ 230:bsp/usart/usart1_k230.c ****  */
+ 231:bsp/usart/usart1_k230.c **** void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+ 232:bsp/usart/usart1_k230.c **** {
+ 676              		.loc 1 232 1 is_stmt 1 view -0
+ 677              		.cfi_startproc
+ 678              		@ args = 0, pretend = 0, frame = 8
+ 679              		@ frame_needed = 0, uses_anonymous_args = 0
+ 680              		.loc 1 232 1 is_stmt 0 view .LVU191
+ 681 0000 10B5     		push	{r4, lr}
+ 682              	.LCFI10:
+ 683              		.cfi_def_cfa_offset 8
+ 684              		.cfi_offset 4, -8
+ 685              		.cfi_offset 14, -4
+ 686 0002 82B0     		sub	sp, sp, #8
+ 687              	.LCFI11:
+ 688              		.cfi_def_cfa_offset 16
+ 689 0004 0446     		mov	r4, r0
+ 233:bsp/usart/usart1_k230.c ****     K230UsartInstance *instance = K230UsartFindInstance(huart);
+ 690              		.loc 1 233 5 is_stmt 1 view .LVU192
+ 691              		.loc 1 233 35 is_stmt 0 view .LVU193
+ 692 0006 FFF7FEFF 		bl	K230UsartFindInstance
+ 693              	.LVL53:
+ 234:bsp/usart/usart1_k230.c ****     if (instance == NULL) {
+ 694              		.loc 1 234 5 is_stmt 1 view .LVU194
+ 695              		.loc 1 234 8 is_stmt 0 view .LVU195
+ 696 000a 78B1     		cbz	r0, .L62
+ 697 000c 0346     		mov	r3, r0
+ 235:bsp/usart/usart1_k230.c ****         return;
+ 236:bsp/usart/usart1_k230.c ****     }
+ 237:bsp/usart/usart1_k230.c **** 
+ 238:bsp/usart/usart1_k230.c ****     instance->error_count++;
+ 698              		.loc 1 238 5 is_stmt 1 view .LVU196
+ 699              		.loc 1 238 13 is_stmt 0 view .LVU197
+ 700 000e 426A     		ldr	r2, [r0, #36]
+ 701              		.loc 1 238 26 view .LVU198
+ 702 0010 0132     		adds	r2, r2, #1
+ 703 0012 4262     		str	r2, [r0, #36]
+ 239:bsp/usart/usart1_k230.c **** 
+ 240:bsp/usart/usart1_k230.c ****     /* 清掉过载标志，否则 HAL 会把接下来的启动直接判为失败 */
+ 241:bsp/usart/usart1_k230.c ****     __HAL_UART_CLEAR_OREFLAG(huart);
+ 704              		.loc 1 241 5 is_stmt 1 view .LVU199
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 18
+
+
+ 705              	.LBB7:
+ 706              		.loc 1 241 5 view .LVU200
+ 707 0014 0022     		movs	r2, #0
+ 708 0016 0192     		str	r2, [sp, #4]
+ 709              		.loc 1 241 5 view .LVU201
+ 710 0018 2168     		ldr	r1, [r4]
+ 711 001a 0868     		ldr	r0, [r1]
+ 712              	.LVL54:
+ 713              		.loc 1 241 5 is_stmt 0 view .LVU202
+ 714 001c 0190     		str	r0, [sp, #4]
+ 715              		.loc 1 241 5 is_stmt 1 view .LVU203
+ 716 001e 4968     		ldr	r1, [r1, #4]
+ 717 0020 0191     		str	r1, [sp, #4]
+ 718              		.loc 1 241 5 view .LVU204
+ 719 0022 0199     		ldr	r1, [sp, #4]
+ 720              	.LBE7:
+ 721              		.loc 1 241 5 view .LVU205
+ 242:bsp/usart/usart1_k230.c **** 
+ 243:bsp/usart/usart1_k230.c ****     /* 重新从缓冲起点接收，读指针一起归零，避免把旧内容当成新数据 */
+ 244:bsp/usart/usart1_k230.c ****     instance->rx_read_pos = 0u;
+ 722              		.loc 1 244 5 view .LVU206
+ 723              		.loc 1 244 27 is_stmt 0 view .LVU207
+ 724 0024 5A83     		strh	r2, [r3, #26]	@ movhi
+ 245:bsp/usart/usart1_k230.c ****     K230UsartRearm(instance);
+ 725              		.loc 1 245 5 is_stmt 1 view .LVU208
+ 726 0026 1846     		mov	r0, r3
+ 727 0028 FFF7FEFF 		bl	K230UsartRearm
+ 728              	.LVL55:
+ 729              	.L62:
+ 246:bsp/usart/usart1_k230.c **** }
+ 730              		.loc 1 246 1 is_stmt 0 view .LVU209
+ 731 002c 02B0     		add	sp, sp, #8
+ 732              	.LCFI12:
+ 733              		.cfi_def_cfa_offset 8
+ 734              		@ sp needed
+ 735 002e 10BD     		pop	{r4, pc}
+ 736              		.loc 1 246 1 view .LVU210
+ 737              		.cfi_endproc
+ 738              	.LFE73:
+ 740              		.section	.bss.k230_usart_pool,"aw",%nobits
+ 741              		.align	2
+ 744              	k230_usart_pool:
+ 745 0000 00000000 		.space	80
+ 745      00000000 
+ 745      00000000 
+ 745      00000000 
+ 745      00000000 
+ 746              		.text
+ 747              	.Letext0:
+ 748              		.file 2 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 749              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 750              		.file 4 "Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h"
+ 751              		.file 5 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h"
+ 752              		.file 6 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma.h"
+ 753              		.file 7 "Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h"
+ 754              		.file 8 "bsp/usart/usart1_k230.h"
+ 755              		.file 9 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 19
+
+
+ 756              		.file 10 "<built-in>"
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s 			page 20
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 usart1_k230.c
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:19     .text.K230UsartFindInstance:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:24     .text.K230UsartFindInstance:00000000 K230UsartFindInstance
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:86     .text.K230UsartFindInstance:00000030 $d
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:744    .bss.k230_usart_pool:00000000 k230_usart_pool
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:91     .text.K230UsartDeliver:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:96     .text.K230UsartDeliver:00000000 K230UsartDeliver
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:147    .text.K230UsartDeliverCircular:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:152    .text.K230UsartDeliverCircular:00000000 K230UsartDeliverCircular
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:250    .text.K230UsartRearm:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:255    .text.K230UsartRearm:00000000 K230UsartRearm
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:294    .text.K230UsartRegister:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:300    .text.K230UsartRegister:00000000 K230UsartRegister
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:464    .text.K230UsartRegister:0000008c $d
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:469    .text.K230UsartStart:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:475    .text.K230UsartStart:00000000 K230UsartStart
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:558    .text.K230UsartGetStats:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:564    .text.K230UsartGetStats:00000000 K230UsartGetStats
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:599    .text.HAL_UARTEx_RxEventCallback:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:605    .text.HAL_UARTEx_RxEventCallback:00000000 HAL_UARTEx_RxEventCallback
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:667    .text.HAL_UART_ErrorCallback:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:673    .text.HAL_UART_ErrorCallback:00000000 HAL_UART_ErrorCallback
+C:\Users\LJH\AppData\Local\Temp\ccGykHGF.s:741    .bss.k230_usart_pool:00000000 $d
+
+UNDEFINED SYMBOLS
+HAL_UARTEx_ReceiveToIdle_DMA
+memset
