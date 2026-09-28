@@ -52,28 +52,79 @@ static int16_t K230ToStm32ReadInt16BE(const uint8_t *data)
     return (int16_t)(((uint16_t)data[0] << 8) | (uint16_t)data[1]);
 }
 
-/**
- * @brief 像素横坐标 → 水管物理位置（线性插值）。
+/* =============== 像素 → 物理位置标定表（唯一要改的地方） ===============
  *
- * 以 0 cm（335 px）为分界，两侧各用一条直线，比例不同：
- *     右半轴：pos_cm = (px - 335) × 10 / (613.3 - 335)
- *     左半轴：pos_cm = (px - 335) × (-11 - 0) / (0 - 335)
+ * 下标 i 对应物理位置 K230_CAL_MIN_CM + i * K230_CAL_STEP_CM。
+ *
+ * 2026-09-28 实测：把钢珠逐个放在水管 1 cm 刻度上，记录 K230 报出的像素 X。
+ * 数据来源为 K230 侧 firmware/main_zdyz_k230.py 的 CAL_X_* 常量，
+ * 两边必须一致——换镜头或挪动相机后重新标定，两个文件一起改。
+ *
+ * 表内相邻两点的差值就是该处的像素比例，畸变一眼可见：
+ *     中心 352-318=34, 318-284=34  → 34 px/cm（放大率最大）
+ *     两端 27-6=21,   623-598=25   → 21~25 px/cm（被压缩）
+ * 中心比边缘大 62%，所以用直线拟合必然有一头对不准。
+ *
+ * 硬性要求：必须随 cm 单调递增。转换函数依赖这一点做区间查找，
+ * 否则插值结果会回跳。改完请肉眼确认一遍相邻值在变大。
+ * ====================================================================== */
+#define K230_CAL_MIN_CM     (-11) /* 下标 0 对应的物理位置(cm) */
+#define K230_CAL_STEP_CM       (1) /* 相邻下标之间的物理间距(cm) */
+#define K230_CAL_POINT_NUM    (22)
+
+/* 下标 i 对应的物理位置(cm) */
+#define K230_CAL_CM_OF_INDEX(i) (K230_CAL_MIN_CM + (int)(i) * K230_CAL_STEP_CM)
+
+static const int16_t k230_cal_px[K230_CAL_POINT_NUM] = {
+    /* -11  -10   -9   -8   -7   -6   -5   -4   -3   -2  cm */
+        6,  27,  50,  74, 100, 128, 156, 187, 219, 251,
+    /*  -1    0   +1   +2   +3   +4   +5   +6   +7   +8  cm */
+      284, 318, 352, 384, 418, 451, 485, 514, 543, 571,
+    /*  +9  +10  cm */
+      598, 623,
+};
+
+/**
+ * @brief 像素横坐标 → 水管物理位置：查标定表 + 相邻两点线性插值。
  *
  * @param current_x_px 钢球像素横坐标。
  * @return 物理位置，单位 cm。
  *
- * @note 两侧比例不同是实测结果，标定依据见头文件注释。不要图省事合并成
- *       一条直线——那会把左侧已经标定准的比例带偏约 9%。
+ * @note 在接收中断中执行。22 项顺序查找即可（20Hz 下开销可忽略），
+ *       不必为二分查找增加复杂度。
  */
 static float K230ToStm32PixelToCm(int16_t current_x_px)
 {
-    float pixel_offset = (float)current_x_px - K230_PIXEL_ZERO_PX;
+    float pixel = (float)current_x_px;
 
-    if (pixel_offset < 0.0f) {
-        return pixel_offset * K230_CM_PER_PIXEL_LEFT;
+    /* 表外：按最近一段的比例外推。钢珠正常不会越出标定范围，
+       越界基本是误检，外推出界值交给上层按物理范围处理即可 */
+    if (pixel <= (float)k230_cal_px[0]) {
+        float slope = (float)K230_CAL_STEP_CM
+                    / ((float)k230_cal_px[1] - (float)k230_cal_px[0]);
+        return (float)K230_CAL_CM_OF_INDEX(0) + (pixel - (float)k230_cal_px[0]) * slope;
+    }
+    if (pixel >= (float)k230_cal_px[K230_CAL_POINT_NUM - 1]) {
+        float slope = (float)K230_CAL_STEP_CM
+                    / ((float)k230_cal_px[K230_CAL_POINT_NUM - 1]
+                       - (float)k230_cal_px[K230_CAL_POINT_NUM - 2]);
+        return (float)K230_CAL_CM_OF_INDEX(K230_CAL_POINT_NUM - 1)
+             + (pixel - (float)k230_cal_px[K230_CAL_POINT_NUM - 1]) * slope;
     }
 
-    return pixel_offset * K230_CM_PER_PIXEL_RIGHT;
+    /* 表内：找到 pixel 落在哪两个标定点之间，再线性插值 */
+    for (uint8_t i = 0u; i < (K230_CAL_POINT_NUM - 1); i++) {
+        float px_low  = (float)k230_cal_px[i];
+        float px_high = (float)k230_cal_px[i + 1];
+
+        if ((pixel >= px_low) && (pixel < px_high)) {
+            float offset = (pixel - px_low) / (px_high - px_low);
+            return (float)K230_CAL_CM_OF_INDEX(i) + offset * (float)K230_CAL_STEP_CM;
+        }
+    }
+
+    /* 表已保证单调递增，正常走不到这里；返回 0 兜底，避免返回未定义值 */
+    return 0.0f;
 }
 
 /**
