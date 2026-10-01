@@ -112,6 +112,10 @@ static const int16_t k230_cal_px[K230_CAL_POINT_NUM] = {
 ### 初始化和生命周期
 
 ```c
+/* 一步初始化：注册 + 启动接收。main.c 里只用这一个 */
+uint8_t              k230_to_stm32_Init(UART_HandleTypeDef *uart_handle);  // 1=已在后台接收
+
+/* 分成两步，需要区分「注册失败」还是「启动失败」时用 */
 K230ToStm32Instance *K230ToStm32Register(const K230ToStm32_Init_Config_s *config);
 uint8_t              K230ToStm32Start(K230ToStm32Instance *instance);   // 1=成功
 ```
@@ -148,30 +152,46 @@ void    K230ToStm32GetStats(K230ToStm32Instance *instance, K230ToStm32_Stats_s *
 
 ## 6. 初始化示例
 
+`main.c` 里就一行（`USER CODE BEGIN 2`）：
+
 ```c
-/* 必须在 MX_USART1_UART_Init() 之后（注册时要读已关联的 DMA 句柄） */
-K230ToStm32_Init_Config_s k230_config = {
-    .uart_handle = &huart1,
-};
-k230_vision = K230ToStm32Register(&k230_config);
-if (k230_vision == NULL) {
-    /* 串口 RX DMA 未配置，或实例池已满 */
-} else if (K230ToStm32Start(k230_vision) == 0u) {
-    /* 串口状态异常，启动失败 */
+/* 必须在 MX_USART1_UART_Init() 之后 —— 注册时要读 CubeMX 已关联的 RX DMA 句柄 */
+(void)k230_to_stm32_Init(&huart1);
+```
+
+`k230_to_stm32_Init()` 就是下面这几步，只是没有对外输出，失败原因只体现在返回值上：
+
+```c
+/* 展开后就是这样，只是没有对外输出，失败原因只体现在返回值上 */
+K230ToStm32_Init_Config_s config = { .uart_handle = &huart1 };
+k230_to_stm32_instance = K230ToStm32Register(&config);   /* NULL = DMA 未配 / 实例池满 */
+if (k230_to_stm32_instance != NULL) {
+    K230ToStm32Start(k230_to_stm32_instance);            /* 0 = 串口状态异常 */
 }
 ```
 
-`main.c` 中已按上述方式接线（`USER CODE BEGIN 2`）。
+启动之后帧解析全在 USART1 中断里完成，**主循环不需要轮询、也不需要做任何事**，
+`main.c` 的 `while(1)` 是空的。
+
+注册出来的实例指针由模块自己保存（`k230_to_stm32.c` 的静态 `k230_to_stm32_instance`），
+不再由 `main.c` 持有。
+
+> 待办：外部还没有取这个实例的接口。等接控制环时，要么补一个单例版取数接口
+> （`uint8_t k230_to_stm32_GetPosCm(float *pos_cm_out);`），要么让
+> `k230_to_stm32_Init()` 把实例指针返回给调用方。
 
 ---
 
 ## 7. 典型使用流程
 
+下面的 `instance` 指 `K230ToStm32Register()` 返回的实例。用
+`k230_to_stm32_Init()` 初始化时，这个指针在模块内部（见 §6 的待办）。
+
 ```c
 /* 控制任务内，按控制周期调用 */
 float ball_pos_cm = 0.0f;
 
-if (K230ToStm32GetPosCm(k230_vision, &ball_pos_cm) != 0u) {
+if (K230ToStm32GetPosCm(instance, &ball_pos_cm) != 0u) {
     /* 位置有效：ball_pos_cm 单位 cm，水管中点为 0，右侧为正 */
     /* pid_ref = 0.0f; feedback = ball_pos_cm; 走正常闭环 */
 } else {
@@ -215,16 +235,23 @@ if (K230ToStm32GetPosCm(k230_vision, &ball_pos_cm) != 0u) {
 
 ## 9. 常见错误
 
-联调时先看 OLED 上显示的四行信息（`main.c` 的调试显示），或读 `GetStats()`：
+`main.c` 里原有的 OLED 调试显示已随初始化收拢一起删除，现在只能靠
+`K230ToStm32GetData()` / `K230ToStm32GetStats()` 读数据判断。
+需要肉眼盯着看时，在 `main.c` 主循环里加一段临时显示即可——
+删除前那版在 git 里还有一个（`git show HEAD:Core/Src/main.c`），
+四行分别是：`pos`（cm，丢失时 `lost`）、`px`（原始像素，含 `t:` 目标）、
+`link`（在线状态）、`fr`/`er`（合法帧数 / 校验失败数）。
+
+下表按「看哪一指标」重写，字段名对应 `K230_Data_s` 和 `K230ToStm32_Stats_s`：
 
 | 现象 | 可能原因 | 排查 |
 |---|---|---|
-| `px` 一直是 0 / 不动 | 没收到任何数据 | 查接线（K230 TX → PA10）、波特率 115200 8N1、K230 是否在发；读 BSP 统计 `rx_byte_count` 是否增长 |
-| `er` 持续增长，`px` 偶发更新 | 波特率不对或协议不匹配 | 校验一直在失败；确认 K230 端帧格式是 13 字节 `AA 55 01 08` 开头 |
-| `rx_byte_count` 增长但 `fr` 不增长 | 收到数据但不是这个协议 | K230 发的是别的帧格式（例如旧的多目标协议），需对齐协议 |
-| `px` 有值但第 1 行是 `lost` | 钢球丢失（`current_x == -1`） | K230 侧目标检测问题：光照、阈值、钢珠反光；正常现象时属预期行为 |
-| `link:offline` | 超过 200ms 没收到合法帧 | 链路断了或 K230 停了；阈值见 `K230_VISION_TIMEOUT_MS` |
-| `pos` 数值明显偏 | 标定表不对 | 用 `px` 手算验证：核对 `modules/k230_to_stm32.c` 的 `k230_cal_px[]`，以及 K230 侧 `CAL_X_*` 是否与它一致。某一段偏 = 表里对应几项量错；整体偏移 = 零点量错 |
+| `current_x_px` 一直是 0 / 不动 | 没收到任何数据 | 查接线（K230 TX → PA10）、波特率 115200 8N1、K230 是否在发；读 BSP 统计 `rx_byte_count` 是否增长 |
+| `checksum_error_count` 持续增长，`current_x_px` 偶发更新 | 波特率不对或协议不匹配 | 校验一直在失败；确认 K230 端帧格式是 13 字节 `AA 55 01 08` 开头 |
+| `rx_byte_count` 增长但 `frame_count` 不增长 | 收到数据但不是这个协议 | K230 发的是别的帧格式（例如旧的多目标协议），需对齐协议 |
+| `current_x_px` 有值但 `pos_valid` 为 0 | 钢球丢失（`current_x == -1`）或视觉超时 | 看 `ball_detected`：为 0 说明是 K230 侧目标检测问题（光照、阈值、钢珠反光），属预期行为；为 1 则是超时，见下一行 |
+| `K230ToStm32IsOnline()` 返回 0 | 超过 200ms 没收到合法帧 | 链路断了或 K230 停了；阈值见 `K230_VISION_TIMEOUT_MS` |
+| `pos_cm` 数值明显偏 | 标定表不对 | 用 `current_x_px` 手算验证：核对 `modules/k230_to_stm32.c` 的 `k230_cal_px[]`，以及 K230 侧 `CAL_X_*` 是否与它一致。某一段偏 = 表里对应几项量错；整体偏移 = 零点量错 |
 | 开机不久后数据停更 | DMA 重挂失败 | 读 BSP `error_count`；确认未被其他代码占用 USART1 或 DMA1_Channel5 |
 
 ---
@@ -238,12 +265,13 @@ if (K230ToStm32GetPosCm(k230_vision, &ball_pos_cm) != 0u) {
 换算部分实测：22 个标定点回代误差 0.000000 cm，21 个中点插值全部正确，
 0~640 px 全程严格单调；旧的两段直线标定最大误差 0.69 cm，换查表后归零。
 
-上板后按下列顺序验证（对应开发规范 §16.2 的模块级测试）：
+上板后按下列顺序验证（对应开发规范 §16.2 的模块级测试）。
+观察手段：临时 OLED 显示（见 §9）、调试器 watch，或把值塞进 `GetData()` 的快照：
 
 ```
-1. 只上串口，K230 正常发球位置，OLED 看 px 是否跟随钢珠
-2. 移动钢珠到水管中点，确认 pos ≈ 0.00cm
-3. 移到右侧 10cm 刻度，确认 pos ≈ 10.00cm
-4. 用手挡住钢珠，确认显示 lost 而不是停在最后一个位置
-5. 拔掉 K230 信号线，确认 200ms 内变成 offline
+1. 只上串口，K230 正常发球位置：current_x_px 应跟随钢珠移动
+2. 移动钢珠到水管中点：pos_cm ≈ 0.00cm
+3. 移到右侧 10cm 刻度：pos_cm ≈ 10.00cm
+4. 用手挡住钢珠：pos_valid 变 0、ball_detected 变 0，而不是停在最后一个位置
+5. 拔掉 K230 信号线：K230ToStm32IsOnline() 在 200ms 内变为 0
 ```

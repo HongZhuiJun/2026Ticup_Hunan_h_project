@@ -118,6 +118,19 @@ typedef struct {
 /* ============================ 外部接口 ============================ */
 
 /**
+ * @brief 一步完成初始化：注册 + 启动接收。
+ *
+ * @param uart_handle 承载 K230 的串口句柄，例如 &huart1；传 NULL 时返回 0。
+ * @return 1 = 已在后台接收；0 = 注册或启动失败。
+ *
+ * @note 必须在 MX_USART1_UART_Init() 之后调用（注册时要读已关联的 RX DMA 句柄）。
+ * @note 失败原因（DMA 未配置 / 实例池已满 / 串口状态异常）只体现在返回值上，
+ *       本函数不做任何输出；只关心「能不能收到数据」时，参数用
+ *       K230ToStm32Register() + K230ToStm32Start() 自行分步调用。
+ */
+uint8_t k230_to_stm32_Init(UART_HandleTypeDef *uart_handle);
+
+/**
  * @brief 注册 K230 视觉接收模块（内部会一并注册 BSP 层串口实例）。
  *
  * @param config 注册参数，不可为 NULL。

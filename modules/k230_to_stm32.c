@@ -42,6 +42,10 @@ struct K230ToStm32Instance {
 /* 实例池：静态分配，控制周期内不做动态内存（开发规范 §7.3） */
 static K230ToStm32Instance k230_to_stm32_pool[K230_TO_STM32_MAX_INSTANCE];
 
+/* k230_to_stm32_Init() 成功注册的实例。调用方（main）不再持有这个指针，
+   后续取数据 / 查在线状态的接口要拿它，所以在这里留一份 */
+static K230ToStm32Instance *k230_to_stm32_instance = NULL;
+
 /* ============================ 内部函数 ============================ */
 
 /**
@@ -262,6 +266,21 @@ static void K230ToStm32OnRxData(K230UsartInstance *usart_instance, const uint8_t
 }
 
 /* ============================ 外部接口 ============================ */
+
+uint8_t k230_to_stm32_Init(UART_HandleTypeDef *uart_handle)
+{
+    K230ToStm32_Init_Config_s config = {
+        .uart_handle = uart_handle,
+    };
+
+    /* 传入 NULL 时 K230ToStm32Register() 会直接返回 NULL，统一走下面的失败分支 */
+    k230_to_stm32_instance = K230ToStm32Register(&config);
+    if (k230_to_stm32_instance == NULL) {
+        return 0u;
+    }
+
+    return K230ToStm32Start(k230_to_stm32_instance);
+}
 
 K230ToStm32Instance *K230ToStm32Register(const K230ToStm32_Init_Config_s *config)
 {

@@ -59,6 +59,8 @@ modules/oled_data.c \
 modules/key.c \
 modules/oled_menu.c \
 modules/k230_to_stm32.c \
+modules/x_v2.c \
+application/ball_control.c \
 bsp/delay.c \
 bsp/gpio/gpio_oled.c \
 bsp/gpio/gpio_key.c \
@@ -134,7 +136,8 @@ C_INCLUDES =  \
 -Ibsp \
 -Ibsp/gpio \
 -Ibsp/usart \
--Imodules
+-Imodules \
+-Iapplication
 
 
 # compile gcc flags
@@ -147,6 +150,12 @@ CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Wextra -Werror -fdata-sec
 # 省略了内层大括号，属既有代码而非本项目改动，因此只对该文件关闭这条告警，
 # 其余文件仍按 §4.5 强制 -Werror。
 $(BUILD_DIR)/oled_data.o: CFLAGS += -Wno-missing-braces
+
+# 定点豁免：modules/x_v2.c 是张大头闭环步进电机的官方例程，函数内写成
+# "__IO static uint8_t cmd[16]"（static 跟在 __IO 后面），触发 86 处
+# -Wold-style-declaration。同属既有第三方代码而非本项目改动，只对该文件
+# 关闭这条告警，其余文件仍按 §4.5 强制 -Werror。
+$(BUILD_DIR)/x_v2.o: CFLAGS += -Wno-old-style-declaration
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2

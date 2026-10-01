@@ -1,6 +1,6 @@
 /**
  * @file oled_menu.c
- * @brief OLED 三级菜单框架（模块层）。
+ * @brief OLED 三级菜单框架（模块层）。只负责显示与按键，不含任何控制代码。
  *
  * 菜单结构：
  *   一级菜单：基础部分 / 发挥部分，光标只在第 3、4 行之间移动
@@ -11,18 +11,21 @@
  * 按键（见 key.h）：KEY1 上移，KEY2 下移，KEY3 确认。
  *   光标在首项时按 KEY1 回绕到末项，在末项时按 KEY2 回绕到首项。
  *
- * 三级菜单里的任务执行函数还没有写，已经用 TODO 注释标出填入位置，
- * 该注释所在的 switch 分支在任务页里每轮循环执行一次。
+ * 任务函数不在本文件里：由 Application 层通过 OLEDMenu_RegisterTask() 注册，
+ * 本文件只在任务页每轮通过 menu_task_table[] 里的函数指针调用一次，
+ * 因此本模块不包含任何 Application 头文件。
  *
  * 注意：
  *   1. 一帧只在最后调用一次 OLED_Update()，刷新过慢会导致按键漏检。
- *   2. 任务页每轮循环都会清屏重绘，任务代码只要更新 location_cm 即可，
+ *   2. 任务页每轮循环都会清屏重绘，任务代码需要用
+ *      OLEDMenu_SetBallPositionCm() 把位置交给菜单来画，
  *      不要在任务里直接调用 OLED 画图，否则会被清掉。
  */
 
 #include "oled_menu.h"
 #include "oled.h"
 #include "key.h"
+#include <stddef.h>   /* NULL */
 
 /*-------------------------------- 显示布局 --------------------------------*/
 #define MENU_ROW_HEIGHT   16u   /* OLED_8X16 字体行高，单位：像素 */
@@ -60,17 +63,6 @@
 #define MENU_BACK_TEXT        "<-上一步        "
 
 /**
- * @brief 三级菜单的任务编号。
- */
-typedef enum {
-    MENU_TASK_STABLE_POSITION = 0,   /* 1.定点稳定控制 */
-    MENU_TASK_BACK_AND_FORTH,        /* 2.折返运动与时效 */
-    MENU_TASK_CONTINUOUS_TRACK,      /* 3.连续跟踪运动 */
-    MENU_TASK_ANTI_DISTURBANCE,      /* 4.抗干扰能力 */
-    MENU_TASK_TARGET_POSITION,       /* 发挥部分：指定位置 */
-} Menu_Task_e;
-
-/**
  * @brief 菜单条目。
  */
 typedef struct {
@@ -100,8 +92,12 @@ static uint8_t menu1_cursor = MENU1_ENTRY_BASIC;
 /* 指定小球位置，单位：cm，范围 MENU_TARGET_POSITION_MIN_CM ~ MENU_TARGET_POSITION_MAX_CM */
 static int8_t specified_location_cm = 0;
 
-/* 当前小球位置，单位：cm，由任务代码更新 */
-static uint8_t location_cm = 0u;
+/* 当前小球位置，单位：cm，由 Application 经 OLEDMenu_SetBallPositionCm() 更新 */
+static int8_t location_cm = 0;
+
+/* 任务函数表，下标即 Menu_Task_e，由 OLEDMenu_RegisterTask() 填写。
+   菜单只按编号调用，不关心是谁注册的，因此不需要包含 Application 头文件 */
+static Menu_TaskFunc_t menu_task_table[MENU_TASK_NUM] = {0};
 
 /**
  * @brief 计算某一行的纵向像素坐标。
@@ -274,36 +270,36 @@ static void menu3_show(void)
     OLED_Update();
 }
 
+/**
+ * @brief 调用某个任务编号对应的任务函数。
+ *
+ * @param task 任务编号，取值 MENU_TASK_xxx
+ *
+ * @note 编号越界、或该任务还没注册过时什么都不做（任务页只显示小球位置）。
+ *       任务函数由 Application 层注册，见 oled_menu.h。
+ */
+static void menu_task_run(Menu_Task_e task)
+{
+    if (((uint8_t)task >= (uint8_t)MENU_TASK_NUM) || (menu_task_table[task] == NULL)) {
+        return;
+    }
+
+    menu_task_table[task]();
+}
+
+/**
+ * @brief 三级菜单循环：每轮执行一次任务函数，直到按 KEY3 返回。
+ *
+ * @param task 要执行的任务编号
+ */
 static void menu3_run(Menu_Task_e task)
 {
     uint8_t key_num;
 
     while (1) {
-        switch (task) {
-        case MENU_TASK_STABLE_POSITION:
-            /* TODO: 在这里填入"定点稳定控制"的任务执行函数 */
-            break;
-
-        case MENU_TASK_BACK_AND_FORTH:
-            /* TODO: 在这里填入"折返运动与时效"的任务执行函数 */
-            break;
-
-        case MENU_TASK_CONTINUOUS_TRACK:
-            /* TODO: 在这里填入"连续跟踪运动"的任务执行函数 */
-            break;
-
-        case MENU_TASK_ANTI_DISTURBANCE:
-            /* TODO: 在这里填入"抗干扰能力"的任务执行函数 */
-            break;
-
-        case MENU_TASK_TARGET_POSITION:
-            /* TODO: 在这里填入"指定小球位置"的任务执行函数 */
-            break;
-
-        default:
-            /* 未定义的任务编号：不执行任何动作，只显示小球位置 */
-            break;
-        }
+        /* 任务体每轮执行一次。菜单持有的是函数指针，本模块不知道
+           任务具体是什么，也就不会混进控制代码 */
+        menu_task_run(task);
 
         key_num = Key_GetNum();
         if (key_num == KEY_NUM_KEY3) {
@@ -418,6 +414,27 @@ static void menu2_performance_run(void)
 
         menu2_performance_show(entry);
     }
+}
+
+/* ============================ 外部接口 ============================ */
+
+void OLEDMenu_RegisterTask(Menu_Task_e task, Menu_TaskFunc_t task_func)
+{
+    if ((uint8_t)task >= (uint8_t)MENU_TASK_NUM) {
+        return;
+    }
+
+    menu_task_table[task] = task_func;
+}
+
+void OLEDMenu_SetBallPositionCm(int8_t position_cm)
+{
+    location_cm = position_cm;
+}
+
+int8_t OLEDMenu_GetTargetPositionCm(void)
+{
+    return specified_location_cm;
 }
 
 /**

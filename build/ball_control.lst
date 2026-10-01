@@ -1,0 +1,322 @@
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s 			page 1
+
+
+   1              		.cpu cortex-m3
+   2              		.arch armv7-m
+   3              		.fpu softvfp
+   4              		.eabi_attribute 20, 1
+   5              		.eabi_attribute 21, 1
+   6              		.eabi_attribute 23, 3
+   7              		.eabi_attribute 24, 1
+   8              		.eabi_attribute 25, 1
+   9              		.eabi_attribute 26, 1
+  10              		.eabi_attribute 30, 1
+  11              		.eabi_attribute 34, 1
+  12              		.eabi_attribute 18, 4
+  13              		.file	"ball_control.c"
+  14              		.text
+  15              	.Ltext0:
+  16              		.cfi_sections	.debug_frame
+  17              		.file 1 "application/ball_control.c"
+  18              		.section	.text.ball_control_task_stable_position,"ax",%progbits
+  19              		.align	1
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  24              	ball_control_task_stable_position:
+  25              	.LFB1:
+   1:application/ball_control.c **** /**
+   2:application/ball_control.c ****  * @file ball_control.c
+   3:application/ball_control.c ****  * @brief Application 层：钢球平衡控制的 5 个赛题任务。
+   4:application/ball_control.c ****  *
+   5:application/ball_control.c ****  * 与菜单的分工（规范 §2.2 的 Application -> Module 单向依赖）：
+   6:application/ball_control.c ****  *   - 菜单（Module）只管显示和按键，不知道任何控制算法；
+   7:application/ball_control.c ****  *   - 本模块在 BallControlInit() 里把自己的任务函数注册给菜单，
+   8:application/ball_control.c ****  *     菜单的三级页面每轮通过函数指针调用一次被选中的那个；
+   9:application/ball_control.c ****  *   - 任务页要显示的小球位置，用 OLEDMenu_SetBallPositionCm() 推给菜单，
+  10:application/ball_control.c ****  *     不要在任务函数里直接调 OLED 画图（菜单每轮会清屏重绘）。
+  11:application/ball_control.c ****  *
+  12:application/ball_control.c ****  * 每个任务函数都必须是「跑一轮就返回」的写法：
+  13:application/ball_control.c ****  *   不能有死循环、长延时或阻塞等待，否则菜单的按键扫描会失灵、
+  14:application/ball_control.c ****  *   KEY3 回不到二级菜单。
+  15:application/ball_control.c ****  */
+  16:application/ball_control.c **** #include "ball_control.h"
+  17:application/ball_control.c **** #include "oled_menu.h"
+  18:application/ball_control.c **** 
+  19:application/ball_control.c **** /**
+  20:application/ball_control.c ****  * @brief 把当前小球位置推给菜单显示。
+  21:application/ball_control.c ****  *
+  22:application/ball_control.c ****  * 位置来自 K230 视觉模块。k230_to_stm32 目前对外只有初始化接口，
+  23:application/ball_control.c ****  * 还没有给 Application 用的取值接口，补上之后在这里接：
+  24:application/ball_control.c ****  *     float pos_cm;
+  25:application/ball_control.c ****  *     if (k230_to_stm32_GetPosCm(&pos_cm) != 0u) {
+  26:application/ball_control.c ****  *         OLEDMenu_SetBallPositionCm((int8_t)pos_cm);   // 位置无效时保持上次显示
+  27:application/ball_control.c ****  *     }
+  28:application/ball_control.c ****  * 注意位置无效（钢球丢失 / 视觉离线）时不要推 0，否则屏幕上会假装球�
+  29:application/ball_control.c ****  */
+  30:application/ball_control.c **** static void ball_control_update_menu_position(void)
+  31:application/ball_control.c **** {
+  32:application/ball_control.c ****     /* TODO: 读视觉位置并推给菜单 */
+  33:application/ball_control.c **** }
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s 			page 2
+
+
+  34:application/ball_control.c **** 
+  35:application/ball_control.c **** /* ============================ 任务函数 ============================ */
+  36:application/ball_control.c **** 
+  37:application/ball_control.c **** /**
+  38:application/ball_control.c ****  * @brief 1. 定点稳定控制：钢球稳定停在指定位置。
+  39:application/ball_control.c ****  */
+  40:application/ball_control.c **** static void ball_control_task_stable_position(void)
+  41:application/ball_control.c **** {
+  26              		.loc 1 41 1 view -0
+  27              		.cfi_startproc
+  28              		@ args = 0, pretend = 0, frame = 0
+  29              		@ frame_needed = 0, uses_anonymous_args = 0
+  30              		@ link register save eliminated.
+  42:application/ball_control.c ****     /* TODO: 位置环 + 电机输出（PID 见 modules/pid，电机见 modules/x_v2） */
+  43:application/ball_control.c ****     ball_control_update_menu_position();
+  31              		.loc 1 43 5 view .LVU1
+  44:application/ball_control.c **** }
+  32              		.loc 1 44 1 is_stmt 0 view .LVU2
+  33 0000 7047     		bx	lr
+  34              		.cfi_endproc
+  35              	.LFE1:
+  37              		.section	.text.ball_control_task_back_and_forth,"ax",%progbits
+  38              		.align	1
+  39              		.syntax unified
+  40              		.thumb
+  41              		.thumb_func
+  43              	ball_control_task_back_and_forth:
+  44              	.LFB2:
+  45:application/ball_control.c **** 
+  46:application/ball_control.c **** /**
+  47:application/ball_control.c ****  * @brief 2. 折返运动与时效：钢球在两点间往返，计时。
+  48:application/ball_control.c ****  */
+  49:application/ball_control.c **** static void ball_control_task_back_and_forth(void)
+  50:application/ball_control.c **** {
+  45              		.loc 1 50 1 is_stmt 1 view -0
+  46              		.cfi_startproc
+  47              		@ args = 0, pretend = 0, frame = 0
+  48              		@ frame_needed = 0, uses_anonymous_args = 0
+  49              		@ link register save eliminated.
+  51:application/ball_control.c ****     /* TODO: 目标位置按折返节奏切换，并记录到达时间 */
+  52:application/ball_control.c ****     ball_control_update_menu_position();
+  50              		.loc 1 52 5 view .LVU4
+  53:application/ball_control.c **** }
+  51              		.loc 1 53 1 is_stmt 0 view .LVU5
+  52 0000 7047     		bx	lr
+  53              		.cfi_endproc
+  54              	.LFE2:
+  56              		.section	.text.ball_control_task_continuous_track,"ax",%progbits
+  57              		.align	1
+  58              		.syntax unified
+  59              		.thumb
+  60              		.thumb_func
+  62              	ball_control_task_continuous_track:
+  63              	.LFB3:
+  54:application/ball_control.c **** 
+  55:application/ball_control.c **** /**
+  56:application/ball_control.c ****  * @brief 3. 连续跟踪运动：目标位置连续变化时钢球跟随。
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s 			page 3
+
+
+  57:application/ball_control.c ****  */
+  58:application/ball_control.c **** static void ball_control_task_continuous_track(void)
+  59:application/ball_control.c **** {
+  64              		.loc 1 59 1 is_stmt 1 view -0
+  65              		.cfi_startproc
+  66              		@ args = 0, pretend = 0, frame = 0
+  67              		@ frame_needed = 0, uses_anonymous_args = 0
+  68              		@ link register save eliminated.
+  60:application/ball_control.c ****     /* TODO: 闭环跟随不断变化的目标位置 */
+  61:application/ball_control.c ****     ball_control_update_menu_position();
+  69              		.loc 1 61 5 view .LVU7
+  62:application/ball_control.c **** }
+  70              		.loc 1 62 1 is_stmt 0 view .LVU8
+  71 0000 7047     		bx	lr
+  72              		.cfi_endproc
+  73              	.LFE3:
+  75              		.section	.text.ball_control_task_anti_disturbance,"ax",%progbits
+  76              		.align	1
+  77              		.syntax unified
+  78              		.thumb
+  79              		.thumb_func
+  81              	ball_control_task_anti_disturbance:
+  82              	.LFB4:
+  63:application/ball_control.c **** 
+  64:application/ball_control.c **** /**
+  65:application/ball_control.c ****  * @brief 4. 抗干扰能力：受到扰动后能回到目标位置。
+  66:application/ball_control.c ****  */
+  67:application/ball_control.c **** static void ball_control_task_anti_disturbance(void)
+  68:application/ball_control.c **** {
+  83              		.loc 1 68 1 is_stmt 1 view -0
+  84              		.cfi_startproc
+  85              		@ args = 0, pretend = 0, frame = 0
+  86              		@ frame_needed = 0, uses_anonymous_args = 0
+  87              		@ link register save eliminated.
+  69:application/ball_control.c ****     /* TODO: 与定点稳定同环，重点在扰动后的恢复 */
+  70:application/ball_control.c ****     ball_control_update_menu_position();
+  88              		.loc 1 70 5 view .LVU10
+  71:application/ball_control.c **** }
+  89              		.loc 1 71 1 is_stmt 0 view .LVU11
+  90 0000 7047     		bx	lr
+  91              		.cfi_endproc
+  92              	.LFE4:
+  94              		.section	.text.ball_control_task_target_position,"ax",%progbits
+  95              		.align	1
+  96              		.syntax unified
+  97              		.thumb
+  98              		.thumb_func
+ 100              	ball_control_task_target_position:
+ 101              	.LFB5:
+  72:application/ball_control.c **** 
+  73:application/ball_control.c **** /**
+  74:application/ball_control.c ****  * @brief 发挥部分：钢球移动到菜单里设定的指定位置。
+  75:application/ball_control.c ****  */
+  76:application/ball_control.c **** static void ball_control_task_target_position(void)
+  77:application/ball_control.c **** {
+ 102              		.loc 1 77 1 is_stmt 1 view -0
+ 103              		.cfi_startproc
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s 			page 4
+
+
+ 104              		@ args = 0, pretend = 0, frame = 0
+ 105              		@ frame_needed = 0, uses_anonymous_args = 0
+ 106              		@ link register save eliminated.
+  78:application/ball_control.c ****     /* 目标位置由用户在二级菜单里 ±1cm 调好后确认，用
+  79:application/ball_control.c ****        OLEDMenu_GetTargetPositionCm() 取回来 */
+  80:application/ball_control.c ****     /* TODO: 以取回的目标位置做位置闭环 */
+  81:application/ball_control.c ****     ball_control_update_menu_position();
+ 107              		.loc 1 81 5 view .LVU13
+  82:application/ball_control.c **** }
+ 108              		.loc 1 82 1 is_stmt 0 view .LVU14
+ 109 0000 7047     		bx	lr
+ 110              		.cfi_endproc
+ 111              	.LFE5:
+ 113              		.section	.text.BallControlInit,"ax",%progbits
+ 114              		.align	1
+ 115              		.global	BallControlInit
+ 116              		.syntax unified
+ 117              		.thumb
+ 118              		.thumb_func
+ 120              	BallControlInit:
+ 121              	.LFB6:
+  83:application/ball_control.c **** 
+  84:application/ball_control.c **** /* ============================ 外部接口 ============================ */
+  85:application/ball_control.c **** 
+  86:application/ball_control.c **** void BallControlInit(void)
+  87:application/ball_control.c **** {
+ 122              		.loc 1 87 1 is_stmt 1 view -0
+ 123              		.cfi_startproc
+ 124              		@ args = 0, pretend = 0, frame = 0
+ 125              		@ frame_needed = 0, uses_anonymous_args = 0
+ 126 0000 08B5     		push	{r3, lr}
+ 127              	.LCFI0:
+ 128              		.cfi_def_cfa_offset 8
+ 129              		.cfi_offset 3, -8
+ 130              		.cfi_offset 14, -4
+  88:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_STABLE_POSITION, ball_control_task_stable_position);
+ 131              		.loc 1 88 5 view .LVU16
+ 132 0002 0A49     		ldr	r1, .L8
+ 133 0004 0020     		movs	r0, #0
+ 134 0006 FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 135              	.LVL0:
+  89:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_BACK_AND_FORTH, ball_control_task_back_and_forth);
+ 136              		.loc 1 89 5 view .LVU17
+ 137 000a 0949     		ldr	r1, .L8+4
+ 138 000c 0120     		movs	r0, #1
+ 139 000e FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 140              	.LVL1:
+  90:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_CONTINUOUS_TRACK, ball_control_task_continuous_track);
+ 141              		.loc 1 90 5 view .LVU18
+ 142 0012 0849     		ldr	r1, .L8+8
+ 143 0014 0220     		movs	r0, #2
+ 144 0016 FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 145              	.LVL2:
+  91:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_ANTI_DISTURBANCE, ball_control_task_anti_disturbance);
+ 146              		.loc 1 91 5 view .LVU19
+ 147 001a 0749     		ldr	r1, .L8+12
+ 148 001c 0320     		movs	r0, #3
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s 			page 5
+
+
+ 149 001e FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 150              	.LVL3:
+  92:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_TARGET_POSITION, ball_control_task_target_position);
+ 151              		.loc 1 92 5 view .LVU20
+ 152 0022 0649     		ldr	r1, .L8+16
+ 153 0024 0420     		movs	r0, #4
+ 154 0026 FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 155              	.LVL4:
+  93:application/ball_control.c **** }
+ 156              		.loc 1 93 1 is_stmt 0 view .LVU21
+ 157 002a 08BD     		pop	{r3, pc}
+ 158              	.L9:
+ 159              		.align	2
+ 160              	.L8:
+ 161 002c 00000000 		.word	ball_control_task_stable_position
+ 162 0030 00000000 		.word	ball_control_task_back_and_forth
+ 163 0034 00000000 		.word	ball_control_task_continuous_track
+ 164 0038 00000000 		.word	ball_control_task_anti_disturbance
+ 165 003c 00000000 		.word	ball_control_task_target_position
+ 166              		.cfi_endproc
+ 167              	.LFE6:
+ 169              		.section	.text.BallControlTask,"ax",%progbits
+ 170              		.align	1
+ 171              		.global	BallControlTask
+ 172              		.syntax unified
+ 173              		.thumb
+ 174              		.thumb_func
+ 176              	BallControlTask:
+ 177              	.LFB7:
+  94:application/ball_control.c **** 
+  95:application/ball_control.c **** void BallControlTask(void)
+  96:application/ball_control.c **** {
+ 178              		.loc 1 96 1 is_stmt 1 view -0
+ 179              		.cfi_startproc
+ 180              		@ args = 0, pretend = 0, frame = 0
+ 181              		@ frame_needed = 0, uses_anonymous_args = 0
+ 182 0000 08B5     		push	{r3, lr}
+ 183              	.LCFI1:
+ 184              		.cfi_def_cfa_offset 8
+ 185              		.cfi_offset 3, -8
+ 186              		.cfi_offset 14, -4
+  97:application/ball_control.c ****     /* 菜单内部是死循环，选任务、执行、返回上级全在里面，不会返回到�
+  98:application/ball_control.c ****     (void)Main_Menu();
+ 187              		.loc 1 98 5 view .LVU23
+ 188              		.loc 1 98 11 is_stmt 0 view .LVU24
+ 189 0002 FFF7FEFF 		bl	Main_Menu
+ 190              	.LVL5:
+  99:application/ball_control.c **** }
+ 191              		.loc 1 99 1 view .LVU25
+ 192 0006 08BD     		pop	{r3, pc}
+ 193              		.cfi_endproc
+ 194              	.LFE7:
+ 196              		.text
+ 197              	.Letext0:
+ 198              		.file 2 "modules/oled_menu.h"
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s 			page 6
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 ball_control.c
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:19     .text.ball_control_task_stable_position:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:24     .text.ball_control_task_stable_position:00000000 ball_control_task_stable_position
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:38     .text.ball_control_task_back_and_forth:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:43     .text.ball_control_task_back_and_forth:00000000 ball_control_task_back_and_forth
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:57     .text.ball_control_task_continuous_track:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:62     .text.ball_control_task_continuous_track:00000000 ball_control_task_continuous_track
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:76     .text.ball_control_task_anti_disturbance:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:81     .text.ball_control_task_anti_disturbance:00000000 ball_control_task_anti_disturbance
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:95     .text.ball_control_task_target_position:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:100    .text.ball_control_task_target_position:00000000 ball_control_task_target_position
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:114    .text.BallControlInit:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:120    .text.BallControlInit:00000000 BallControlInit
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:161    .text.BallControlInit:0000002c $d
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:170    .text.BallControlTask:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cca0AatZ.s:176    .text.BallControlTask:00000000 BallControlTask
+
+UNDEFINED SYMBOLS
+OLEDMenu_RegisterTask
+Main_Menu
