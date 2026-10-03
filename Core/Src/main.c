@@ -25,9 +25,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "oled.h"
-#include "delay.h"
-#include "oled_menu.h"
-#include "key.h"
 #include "k230_to_stm32.h"
 #include "ball_control.h"
 /* USER CODE END Includes */
@@ -99,15 +96,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   OLED_Init();
 
-  /* 初始化 K230 视觉接收（USART1 + DMA1_Channel5 空闲中断不定长接收）后
-     立即开始收数据，帧解析在中断里完成，主循环不需要轮询。
-     必须在 MX_USART1_UART_Init() 之后调用（注册时要读已关联的 DMA 句柄）。
-     返回 0 表示注册或启动失败，此处暂不处理 */
+  /* 初始化 K230 视觉接收，并把默认实例交给 ball_control 使用。
+     必须在 MX_USART1_UART_Init() 之后调用，因为注册时要读 DMA 句柄。 */
   (void)k230_to_stm32_Init(&huart1);
 
   /* 把钢球控制的 5 个任务注册给菜单，然后进入菜单。菜单内部是死循环，
      选任务、执行、返回上级都在里面，BallControlTask() 不会返回 */
-  BallControlInit();
+  BallControlInit(K230ToStm32GetInstance());
   BallControlTask();
   /* USER CODE END 2 */
 

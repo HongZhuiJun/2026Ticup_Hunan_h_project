@@ -282,6 +282,16 @@ uint8_t k230_to_stm32_Init(UART_HandleTypeDef *uart_handle)
     return K230ToStm32Start(k230_to_stm32_instance);
 }
 
+/**
+ * @brief 获取 k230_to_stm32_Init() 创建的默认 K230 实例。
+ *
+ * @return 默认实例指针；尚未初始化或初始化失败时返回 NULL。
+ */
+K230ToStm32Instance *K230ToStm32GetInstance(void)
+{
+    return k230_to_stm32_instance;
+}
+
 K230ToStm32Instance *K230ToStm32Register(const K230ToStm32_Init_Config_s *config)
 {
     if ((config == NULL) || (config->uart_handle == NULL)) {

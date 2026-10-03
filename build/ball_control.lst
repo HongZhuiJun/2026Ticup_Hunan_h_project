@@ -1,4 +1,4 @@
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 1
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 1
 
 
    1              		.cpu cortex-m3
@@ -18,305 +18,3542 @@ ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 1
   15              	.Ltext0:
   16              		.cfi_sections	.debug_frame
   17              		.file 1 "application/ball_control.c"
-  18              		.section	.text.ball_control_task_stable_position,"ax",%progbits
+  18              		.section	.text.PIDClampFloat,"ax",%progbits
   19              		.align	1
   20              		.syntax unified
   21              		.thumb
   22              		.thumb_func
-  24              	ball_control_task_stable_position:
-  25              	.LFB1:
+  24              	PIDClampFloat:
+  25              	.LVL0:
+  26              	.LFB65:
+  27              		.file 2 "modules/pid.c"
+   1:modules/pid.c **** /**
+   2:modules/pid.c ****  * @file pid.c
+   3:modules/pid.c ****  * @brief Module 层：通用位置 PID 实现。
+   4:modules/pid.c ****  *
+   5:modules/pid.c ****  * 本文件不使用宏定义，PID 参数通过 PIDInstance 结构体和 PIDInit() 传入。
+   6:modules/pid.c ****  */
+   7:modules/pid.c **** 
+   8:modules/pid.c **** #include "pid.h"
+   9:modules/pid.c **** #include <stddef.h>
+  10:modules/pid.c **** 
+  11:modules/pid.c **** /**
+  12:modules/pid.c ****  * @brief 把浮点数限制在指定范围内。
+  13:modules/pid.c ****  *
+  14:modules/pid.c ****  * @param value   待限幅的数值。
+  15:modules/pid.c ****  * @param minimum 允许的最小值。
+  16:modules/pid.c ****  * @param maximum 允许的最大值。
+  17:modules/pid.c ****  * @return 限幅后的数值。
+  18:modules/pid.c ****  */
+  19:modules/pid.c **** static float PIDClampFloat(float value, float minimum, float maximum)
+  20:modules/pid.c **** {
+  28              		.loc 2 20 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		.loc 2 20 1 is_stmt 0 view .LVU1
+  33 0000 70B5     		push	{r4, r5, r6, lr}
+  34              	.LCFI0:
+  35              		.cfi_def_cfa_offset 16
+  36              		.cfi_offset 4, -16
+  37              		.cfi_offset 5, -12
+  38              		.cfi_offset 6, -8
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 2
+
+
+  39              		.cfi_offset 14, -4
+  40 0002 0446     		mov	r4, r0
+  41 0004 0E46     		mov	r6, r1
+  42 0006 1546     		mov	r5, r2
+  21:modules/pid.c ****     if (value > maximum) {
+  43              		.loc 2 21 5 is_stmt 1 view .LVU2
+  44              		.loc 2 21 8 is_stmt 0 view .LVU3
+  45 0008 1146     		mov	r1, r2
+  46              	.LVL1:
+  47              		.loc 2 21 8 view .LVU4
+  48 000a FFF7FEFF 		bl	__aeabi_fcmpgt
+  49              	.LVL2:
+  50              		.loc 2 21 8 view .LVU5
+  51 000e 30B9     		cbnz	r0, .L3
+  22:modules/pid.c ****         return maximum;
+  23:modules/pid.c ****     }
+  24:modules/pid.c **** 
+  25:modules/pid.c ****     if (value < minimum) {
+  52              		.loc 2 25 5 is_stmt 1 view .LVU6
+  53              		.loc 2 25 8 is_stmt 0 view .LVU7
+  54 0010 3146     		mov	r1, r6
+  55 0012 2046     		mov	r0, r4
+  56 0014 FFF7FEFF 		bl	__aeabi_fcmplt
+  57              	.LVL3:
+  58 0018 18B9     		cbnz	r0, .L4
+  26:modules/pid.c ****         return minimum;
+  27:modules/pid.c ****     }
+  28:modules/pid.c **** 
+  29:modules/pid.c ****     return value;
+  59              		.loc 2 29 12 view .LVU8
+  60 001a 2046     		mov	r0, r4
+  61              	.L1:
+  30:modules/pid.c **** }
+  62              		.loc 2 30 1 view .LVU9
+  63 001c 70BD     		pop	{r4, r5, r6, pc}
+  64              	.LVL4:
+  65              	.L3:
+  22:modules/pid.c ****         return maximum;
+  66              		.loc 2 22 16 view .LVU10
+  67 001e 2846     		mov	r0, r5
+  68 0020 FCE7     		b	.L1
+  69              	.L4:
+  26:modules/pid.c ****         return minimum;
+  70              		.loc 2 26 16 view .LVU11
+  71 0022 3046     		mov	r0, r6
+  72 0024 FAE7     		b	.L1
+  73              		.cfi_endproc
+  74              	.LFE65:
+  76              		.section	.text.BallControl_UpdateReferenceRamp,"ax",%progbits
+  77              		.align	1
+  78              		.syntax unified
+  79              		.thumb
+  80              		.thumb_func
+  82              	BallControl_UpdateReferenceRamp:
+  83              	.LVL5:
+  84              	.LFB73:
    1:application/ball_control.c **** /**
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 3
+
+
    2:application/ball_control.c ****  * @file ball_control.c
    3:application/ball_control.c ****  * @brief Application 层：钢球平衡控制的 5 个赛题任务。
    4:application/ball_control.c ****  *
-   5:application/ball_control.c ****  * 与菜单的分工（规范 §2.2 的 Application -> Module 单向依赖）：
-   6:application/ball_control.c ****  *   - 菜单（Module）只管显示和按键，不知道任何控制算法；
-   7:application/ball_control.c ****  *   - 本模块在 BallControlInit() 里把自己的任务函数注册给菜单，
-   8:application/ball_control.c ****  *     菜单的三级页面每轮通过函数指针调用一次被选中的那个；
-   9:application/ball_control.c ****  *   - 任务页要显示的小球位置，用 OLEDMenu_SetBallPositionCm() 推给菜单，
-  10:application/ball_control.c ****  *     不要在任务函数里直接调 OLED 画图（菜单每轮会清屏重绘）。
-  11:application/ball_control.c ****  *
-  12:application/ball_control.c ****  * 每个任务函数都必须是「跑一轮就返回」的写法：
-  13:application/ball_control.c ****  *   不能有死循环、长延时或阻塞等待，否则菜单的按键扫描会失灵、
-  14:application/ball_control.c ****  *   KEY3 回不到二级菜单。
-  15:application/ball_control.c ****  */
-  16:application/ball_control.c **** #include "ball_control.h"
-  17:application/ball_control.c **** #include "oled_menu.h"
-  18:application/ball_control.c **** 
-  19:application/ball_control.c **** /**
-  20:application/ball_control.c ****  * @brief 把当前小球位置推给菜单显示。
-  21:application/ball_control.c ****  *
-  22:application/ball_control.c ****  * 位置来自 K230 视觉模块。k230_to_stm32 目前对外只有初始化接口，
-  23:application/ball_control.c ****  * 还没有给 Application 用的取值接口，补上之后在这里接：
-  24:application/ball_control.c ****  *     float pos_cm;
-  25:application/ball_control.c ****  *     if (k230_to_stm32_GetPosCm(&pos_cm) != 0u) {
-  26:application/ball_control.c ****  *         OLEDMenu_SetBallPositionCm((int8_t)pos_cm);   // 位置无效时保持上次显示
-  27:application/ball_control.c ****  *     }
-  28:application/ball_control.c ****  * 注意位置无效（钢球丢失 / 视觉离线）时不要推 0，否则屏幕上会假装球�
-  29:application/ball_control.c ****  */
-  30:application/ball_control.c **** static void ball_control_update_menu_position(void)
-  31:application/ball_control.c **** {
-  32:application/ball_control.c ****     /* TODO: 读视觉位置并推给菜单 */
-  33:application/ball_control.c **** }
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 2
-
-
+   5:application/ball_control.c ****  * 控制约定：
+   6:application/ball_control.c ****  *   - 水管倾角 > 0：右端下降，球向右滚；
+   7:application/ball_control.c ****  *   - 水管倾角 < 0：右端上升，球向左滚；
+   8:application/ball_control.c ****  *   - 电机逻辑角度 = 水管倾角 × MOTOR_DEG_PER_TUBE_DEG；
+   9:application/ball_control.c ****  *   - 电机逻辑角度 > 0 使用 dir=1，< 0 使用 dir=0。
+  10:application/ball_control.c ****  *
+  11:application/ball_control.c ****  * 当前标定数据：
+  12:application/ball_control.c ****  *   - 电机 ±20° 对应水管 ±5°；
+  13:application/ball_control.c ****  *   - 因此 MOTOR_DEG_PER_TUBE_DEG = 4.0f。
+  14:application/ball_control.c ****  *
+  15:application/ball_control.c ****  * 注意：当前 Makefile 没有单独编译 modules/pid.c，因此这里临时包含 pid.c。
+  16:application/ball_control.c ****  * 以后把 modules/pid.c 加入 Makefile 的 C_SOURCES 后，删除下面这行 include。
+  17:application/ball_control.c ****  */
+  18:application/ball_control.c **** #include "ball_control.h"
+  19:application/ball_control.c **** #include "oled_menu.h"
+  20:application/ball_control.c **** #include "k230_to_stm32.h"
+  21:application/ball_control.c **** #include "x_v2.h"
+  22:application/ball_control.c **** #include "pid.h"
+  23:application/ball_control.c **** #include "pid.c"
+  24:application/ball_control.c **** #include <math.h>
+  25:application/ball_control.c **** #include <stddef.h>
+  26:application/ball_control.c **** 
+  27:application/ball_control.c **** /* ============================ 机械与控制参数 ============================ */
+  28:application/ball_control.c **** 
+  29:application/ball_control.c **** #define BALL_MOTOR_ADDR                 1u      /* X42S 电机地址，默认地址 1 */
+  30:application/ball_control.c **** #define BALL_MOTOR_DEG_PER_TUBE_DEG     4.0f    /* 机械比例 K：水管转 1°，电机转 4° *
+  31:application/ball_control.c **** #define BALL_TUBE_ANGLE_LIMIT_DEG       3.5f    /* 最终水管倾角限幅：±3.5° */
+  32:application/ball_control.c **** #define BALL_MOTOR_SPEED_RPM            60.0f   /* 电机位置模式最大速度：60 RPM */
+  33:application/ball_control.c **** #define BALL_MOTOR_CURRENT_MA           1200u   /* 电机位置模式最大电流：1200 mA */
   34:application/ball_control.c **** 
-  35:application/ball_control.c **** /* ============================ 任务函数 ============================ */
-  36:application/ball_control.c **** 
-  37:application/ball_control.c **** /**
-  38:application/ball_control.c ****  * @brief 1. 定点稳定控制：钢球稳定停在指定位置。
-  39:application/ball_control.c ****  */
-  40:application/ball_control.c **** static void ball_control_task_stable_position(void)
-  41:application/ball_control.c **** {
-  26              		.loc 1 41 1 view -0
-  27              		.cfi_startproc
-  28              		@ args = 0, pretend = 0, frame = 0
-  29              		@ frame_needed = 0, uses_anonymous_args = 0
-  30              		@ link register save eliminated.
-  42:application/ball_control.c ****     /* TODO: 位置环 + 电机输出（PID 见 modules/pid，电机见 modules/x_v2） */
-  43:application/ball_control.c ****     ball_control_update_menu_position();
-  31              		.loc 1 43 5 view .LVU1
-  44:application/ball_control.c **** }
-  32              		.loc 1 44 1 is_stmt 0 view .LVU2
-  33 0000 7047     		bx	lr
-  34              		.cfi_endproc
-  35              	.LFE1:
-  37              		.section	.text.ball_control_task_back_and_forth,"ax",%progbits
-  38              		.align	1
-  39              		.syntax unified
-  40              		.thumb
-  41              		.thumb_func
-  43              	ball_control_task_back_and_forth:
-  44              	.LFB2:
-  45:application/ball_control.c **** 
-  46:application/ball_control.c **** /**
-  47:application/ball_control.c ****  * @brief 2. 折返运动与时效：钢球在两点间往返，计时。
-  48:application/ball_control.c ****  */
-  49:application/ball_control.c **** static void ball_control_task_back_and_forth(void)
-  50:application/ball_control.c **** {
-  45              		.loc 1 50 1 is_stmt 1 view -0
-  46              		.cfi_startproc
-  47              		@ args = 0, pretend = 0, frame = 0
-  48              		@ frame_needed = 0, uses_anonymous_args = 0
-  49              		@ link register save eliminated.
-  51:application/ball_control.c ****     /* TODO: 目标位置按折返节奏切换，并记录到达时间 */
-  52:application/ball_control.c ****     ball_control_update_menu_position();
-  50              		.loc 1 52 5 view .LVU4
-  53:application/ball_control.c **** }
-  51              		.loc 1 53 1 is_stmt 0 view .LVU5
-  52 0000 7047     		bx	lr
-  53              		.cfi_endproc
-  54              	.LFE2:
-  56              		.section	.text.ball_control_task_continuous_track,"ax",%progbits
-  57              		.align	1
-  58              		.syntax unified
-  59              		.thumb
-  60              		.thumb_func
-  62              	ball_control_task_continuous_track:
-  63              	.LFB3:
-  54:application/ball_control.c **** 
-  55:application/ball_control.c **** /**
-  56:application/ball_control.c ****  * @brief 3. 连续跟踪运动：目标位置连续变化时钢球跟随。
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 3
+  35:application/ball_control.c **** /* K230 位置和速度滤波。视觉约 20Hz，控制只在收到新帧时执行。 */
+  36:application/ball_control.c **** #define BALL_POS_FILTER_ALPHA           0.45f   /* 位置一阶滤波系数：越大越跟随，越
+  37:application/ball_control.c **** #define BALL_VEL_FILTER_ALPHA           0.30f   /* 速度一阶滤波系数：越大越灵敏，越
+  38:application/ball_control.c **** #define BALL_MAX_VELOCITY_CMPS          50.0f   /* 速度估计限幅：±50 cm/s，防止异常帧
+  39:application/ball_control.c **** 
+  40:application/ball_control.c **** /* PID 初值：后续必须根据实车曲线继续整定。 */
+  41:application/ball_control.c **** #define BALL_PID_KP                     0.6f    /* PID 比例系数：水管角度/cm */
+  42:application/ball_control.c **** #define BALL_PID_KI                     0.0f    /* PID 积分系数：水管角度/(cm·s)，当前
+  43:application/ball_control.c **** #define BALL_PID_KD                     0.2f    /* PID 微分系数：水管角度/(cm/s)，起刹�
+  44:application/ball_control.c **** #define BALL_PID_OUT_LIMIT_DEG          3.5f    /* PID 输出限幅：±3.5° 水管角度 */
+  45:application/ball_control.c **** #define BALL_PID_INTEGRAL_LIMIT_DEG     0.0f    /* 积分项限幅：±0°，当前关闭积分 */
+  46:application/ball_control.c **** #define BALL_PID_INTEGRAL_ZONE_CM       2.0f    /* 只在位置误差小于 2cm 时才允许积分 
+  47:application/ball_control.c **** #define BALL_PID_INTEGRAL_VEL_CMPS      5.0f    /* 只在球速小于 5cm/s 时才允许积分 */
+  48:application/ball_control.c **** 
+  49:application/ball_control.c **** /* 目标位置斜坡：先给球一个平滑的位置参考，避免目标阶跃。 */
+  50:application/ball_control.c **** #define BALL_REF_POS_GAIN               2.0f    /* 目标位置斜坡的比例增益：越大参考
+  51:application/ball_control.c **** #define BALL_REF_MAX_VEL_CMPS           6.0f    /* 目标参考位置最大速度：6 cm/s */
+  52:application/ball_control.c **** #define BALL_REF_ACCEL_CMPS2            12.0f   /* 目标参考位置最大加速度：12 cm/s² */
+  53:application/ball_control.c **** 
+  54:application/ball_control.c **** /* 连续跟踪任务：目标 = 8cm × sin(2πt/4s)。 */
+  55:application/ball_control.c **** #define BALL_TRACK_AMPLITUDE_CM         8.0f    /* 任务3正弦跟踪幅值：±8 cm */
+  56:application/ball_control.c **** #define BALL_TRACK_PERIOD_S             4.0f    /* 任务3正弦跟踪周期：4 s */
+  57:application/ball_control.c **** #define BALL_TRACK_OMEGA_RADPS          (2.0f * 3.14159265f / BALL_TRACK_PERIOD_S) /* 任务3正弦
+  58:application/ball_control.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 4
 
 
-  57:application/ball_control.c ****  */
-  58:application/ball_control.c **** static void ball_control_task_continuous_track(void)
-  59:application/ball_control.c **** {
-  64              		.loc 1 59 1 is_stmt 1 view -0
-  65              		.cfi_startproc
-  66              		@ args = 0, pretend = 0, frame = 0
-  67              		@ frame_needed = 0, uses_anonymous_args = 0
-  68              		@ link register save eliminated.
-  60:application/ball_control.c ****     /* TODO: 闭环跟随不断变化的目标位置 */
-  61:application/ball_control.c ****     ball_control_update_menu_position();
-  69              		.loc 1 61 5 view .LVU7
-  62:application/ball_control.c **** }
-  70              		.loc 1 62 1 is_stmt 0 view .LVU8
-  71 0000 7047     		bx	lr
-  72              		.cfi_endproc
-  73              	.LFE3:
-  75              		.section	.text.ball_control_task_anti_disturbance,"ax",%progbits
-  76              		.align	1
-  77              		.syntax unified
-  78              		.thumb
-  79              		.thumb_func
-  81              	ball_control_task_anti_disturbance:
-  82              	.LFB4:
-  63:application/ball_control.c **** 
-  64:application/ball_control.c **** /**
-  65:application/ball_control.c ****  * @brief 4. 抗干扰能力：受到扰动后能回到目标位置。
-  66:application/ball_control.c ****  */
-  67:application/ball_control.c **** static void ball_control_task_anti_disturbance(void)
-  68:application/ball_control.c **** {
-  83              		.loc 1 68 1 is_stmt 1 view -0
-  84              		.cfi_startproc
-  85              		@ args = 0, pretend = 0, frame = 0
-  86              		@ frame_needed = 0, uses_anonymous_args = 0
-  87              		@ link register save eliminated.
-  69:application/ball_control.c ****     /* TODO: 与定点稳定同环，重点在扰动后的恢复 */
-  70:application/ball_control.c ****     ball_control_update_menu_position();
-  88              		.loc 1 70 5 view .LVU10
-  71:application/ball_control.c **** }
-  89              		.loc 1 71 1 is_stmt 0 view .LVU11
-  90 0000 7047     		bx	lr
-  91              		.cfi_endproc
-  92              	.LFE4:
-  94              		.section	.text.ball_control_task_target_position,"ax",%progbits
-  95              		.align	1
-  96              		.syntax unified
-  97              		.thumb
-  98              		.thumb_func
- 100              	ball_control_task_target_position:
- 101              	.LFB5:
-  72:application/ball_control.c **** 
-  73:application/ball_control.c **** /**
-  74:application/ball_control.c ****  * @brief 发挥部分：钢球移动到菜单里设定的指定位置。
-  75:application/ball_control.c ****  */
-  76:application/ball_control.c **** static void ball_control_task_target_position(void)
-  77:application/ball_control.c **** {
- 102              		.loc 1 77 1 is_stmt 1 view -0
- 103              		.cfi_startproc
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 4
+  59:application/ball_control.c **** /* 小球加速度前馈：a = (5/7)g·sinθ，反解得到约 0.082°/cm/s²。 */
+  60:application/ball_control.c **** #define BALL_FF_ACCEL_DEG_PER_CMPS2     0.082f  /* 加速度前馈增益：1cm/s² 目标加速度�
+  61:application/ball_control.c **** 
+  62:application/ball_control.c **** /* 稳定判据。 */
+  63:application/ball_control.c **** #define BALL_STABLE_ERROR_CM            0.8f    /* 稳定判据位置误差：≤0.8 cm */
+  64:application/ball_control.c **** #define BALL_STABLE_VEL_CMPS            2.0f    /* 稳定判据球速：≤2 cm/s */
+  65:application/ball_control.c **** #define BALL_STABLE_TIME_S              3.0f    /* 稳定持续时间：≥3 s */
+  66:application/ball_control.c **** #define BALL_FOLD_ERROR_CM              1.0f    /* 任务2折返到位判据：≤1 cm */
+  67:application/ball_control.c **** #define BALL_ANTI_DISTURB_ERROR_CM      0.5f    /* 任务4抗干扰稳定误差预留判据：≤0.
+  68:application/ball_control.c **** 
+  69:application/ball_control.c **** /* 同一个任务退出后再次进入时，用视觉帧时间戳判断是否要重新开始。 */
+  70:application/ball_control.c **** #define BALL_TASK_RESET_GAP_MS          100u    /* 视觉帧间隔超过 100ms，视为重新进入
+  71:application/ball_control.c **** 
+  72:application/ball_control.c **** typedef enum {
+  73:application/ball_control.c ****     BALL_REF_RAMP = 0,   /* 目标经过速度斜坡生成 */
+  74:application/ball_control.c ****     BALL_REF_SINE,       /* 正弦目标直接生成 */
+  75:application/ball_control.c **** } Ball_RefMode_e;
+  76:application/ball_control.c **** 
+  77:application/ball_control.c **** /**
+  78:application/ball_control.c ****  * @brief 钢球控制的运行时状态。
+  79:application/ball_control.c ****  *
+  80:application/ball_control.c ****  * 保存 K230 数据处理结果、PID 实例、任务状态机、参考轨迹和 OLED 显示缓�
+  81:application/ball_control.c ****  * 该结构体只在 ball_control.c 内部使用。
+  82:application/ball_control.c ****  */
+  83:application/ball_control.c **** typedef struct {
+  84:application/ball_control.c ****     K230ToStm32Instance *k230_instance; /* K230 视觉模块实例，NULL 表示视觉不可用 */
+  85:application/ball_control.c ****     PIDInstance pid;                    /* 球位置 PID 实例 */
+  86:application/ball_control.c **** 
+  87:application/ball_control.c ****     Menu_Task_e active_task;            /* 当前正在执行的任务编号 */
+  88:application/ball_control.c ****     uint8_t task_active;                /* 是否已经进入过任务：0=未进入，1=已进入 
+  89:application/ball_control.c ****     uint8_t task_phase;                 /* 任务阶段，任务1用它区分 +6cm 和 -6cm 两个�
+  90:application/ball_control.c ****     float task_elapsed_s;               /* 当前任务已运行时间，单位 s，主要用于任
+  91:application/ball_control.c ****     float stable_time_s;                /* 连续满足稳定条件的累计时间，单位 s */
+  92:application/ball_control.c **** 
+  93:application/ball_control.c ****     uint8_t filter_initialized;         /* 滤波器和参考位置是否已经初始化 */
+  94:application/ball_control.c ****     uint8_t have_last_frame;            /* 是否保存过上一帧 K230 时间戳 */
+  95:application/ball_control.c ****     uint8_t vision_was_valid;           /* 上一次视觉数据是否有效 */
+  96:application/ball_control.c ****     uint8_t fail_safe_applied;          /* 视觉失效后的安全回零动作是否已经执行�
+  97:application/ball_control.c ****     uint32_t last_frame_time_ms;        /* 上一帧有效 K230 数据的时间戳，单位 ms */
+  98:application/ball_control.c ****     float last_dt_s;                    /* 本次控制周期，单位 s */
+  99:application/ball_control.c **** 
+ 100:application/ball_control.c ****     float filtered_pos_cm;              /* 滤波后的钢球位置，单位 cm */
+ 101:application/ball_control.c ****     float last_filtered_pos_cm;         /* 上一周期滤波后的钢球位置，单位 cm */
+ 102:application/ball_control.c ****     float ball_vel_cmps;                /* 滤波后的钢球速度，单位 cm/s，向右为正 */
+ 103:application/ball_control.c **** 
+ 104:application/ball_control.c ****     float target_cm;                    /* 当前任务的最终目标位置，单位 cm，斜坡�
+ 105:application/ball_control.c ****     float ref_pos_cm;                   /* 经过斜坡或正弦生成后的参考目标位置，�
+ 106:application/ball_control.c ****     float ref_vel_cmps;                 /* 参考目标速度，单位 cm/s */
+ 107:application/ball_control.c ****     float ref_acc_cmps2;                /* 参考目标加速度，单位 cm/s² */
+ 108:application/ball_control.c **** 
+ 109:application/ball_control.c ****     float display_pos_cm;               /* 发送给 OLED 显示的滤波后位置，单位 cm */
+ 110:application/ball_control.c ****     uint8_t display_valid;              /* 显示位置是否有效：1=有效 */
+ 111:application/ball_control.c ****     uint8_t feedforward_enabled;        /* 是否启用前馈：只有任务3为1，其他任务为
+ 112:application/ball_control.c **** } BallControl_t;
+ 113:application/ball_control.c **** 
+ 114:application/ball_control.c **** static BallControl_t ball_control;
+ 115:application/ball_control.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 5
 
 
- 104              		@ args = 0, pretend = 0, frame = 0
- 105              		@ frame_needed = 0, uses_anonymous_args = 0
- 106              		@ link register save eliminated.
-  78:application/ball_control.c ****     /* 目标位置由用户在二级菜单里 ±1cm 调好后确认，用
-  79:application/ball_control.c ****        OLEDMenu_GetTargetPositionCm() 取回来 */
-  80:application/ball_control.c ****     /* TODO: 以取回的目标位置做位置闭环 */
-  81:application/ball_control.c ****     ball_control_update_menu_position();
- 107              		.loc 1 81 5 view .LVU13
-  82:application/ball_control.c **** }
- 108              		.loc 1 82 1 is_stmt 0 view .LVU14
- 109 0000 7047     		bx	lr
- 110              		.cfi_endproc
- 111              	.LFE5:
- 113              		.section	.text.BallControlInit,"ax",%progbits
- 114              		.align	1
- 115              		.global	BallControlInit
- 116              		.syntax unified
- 117              		.thumb
- 118              		.thumb_func
- 120              	BallControlInit:
- 121              	.LFB6:
-  83:application/ball_control.c **** 
-  84:application/ball_control.c **** /* ============================ 外部接口 ============================ */
-  85:application/ball_control.c **** 
-  86:application/ball_control.c **** void BallControlInit(void)
-  87:application/ball_control.c **** {
- 122              		.loc 1 87 1 is_stmt 1 view -0
- 123              		.cfi_startproc
- 124              		@ args = 0, pretend = 0, frame = 0
- 125              		@ frame_needed = 0, uses_anonymous_args = 0
- 126 0000 08B5     		push	{r3, lr}
- 127              	.LCFI0:
- 128              		.cfi_def_cfa_offset 8
- 129              		.cfi_offset 3, -8
- 130              		.cfi_offset 14, -4
-  88:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_STABLE_POSITION, ball_control_task_stable_position);
- 131              		.loc 1 88 5 view .LVU16
- 132 0002 0A49     		ldr	r1, .L8
- 133 0004 0020     		movs	r0, #0
- 134 0006 FFF7FEFF 		bl	OLEDMenu_RegisterTask
- 135              	.LVL0:
-  89:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_BACK_AND_FORTH, ball_control_task_back_and_forth);
- 136              		.loc 1 89 5 view .LVU17
- 137 000a 0949     		ldr	r1, .L8+4
- 138 000c 0120     		movs	r0, #1
- 139 000e FFF7FEFF 		bl	OLEDMenu_RegisterTask
- 140              	.LVL1:
-  90:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_CONTINUOUS_TRACK, ball_control_task_continuous_track);
- 141              		.loc 1 90 5 view .LVU18
- 142 0012 0849     		ldr	r1, .L8+8
- 143 0014 0220     		movs	r0, #2
- 144 0016 FFF7FEFF 		bl	OLEDMenu_RegisterTask
- 145              	.LVL2:
-  91:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_ANTI_DISTURBANCE, ball_control_task_anti_disturbance);
- 146              		.loc 1 91 5 view .LVU19
- 147 001a 0749     		ldr	r1, .L8+12
- 148 001c 0320     		movs	r0, #3
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 5
+ 116:application/ball_control.c **** /* ============================ 内部函数 ============================ */
+ 117:application/ball_control.c **** 
+ 118:application/ball_control.c **** /**
+ 119:application/ball_control.c ****  * @brief 复位钢球控制的运行时状态。
+ 120:application/ball_control.c ****  *
+ 121:application/ball_control.c ****  * 复位 PID、任务阶段、滤波器和参考轨迹，防止上一个任务的状态影响新�
+ 122:application/ball_control.c ****  */
+ 123:application/ball_control.c **** static void BallControl_ResetRuntime(void)
+ 124:application/ball_control.c **** {
+ 125:application/ball_control.c ****     PIDReset(&ball_control.pid);
+ 126:application/ball_control.c **** 
+ 127:application/ball_control.c ****     ball_control.task_phase = 0u;
+ 128:application/ball_control.c ****     ball_control.task_elapsed_s = 0.0f;
+ 129:application/ball_control.c ****     ball_control.stable_time_s = 0.0f;
+ 130:application/ball_control.c **** 
+ 131:application/ball_control.c ****     ball_control.filter_initialized = 0u;
+ 132:application/ball_control.c ****     ball_control.have_last_frame = 0u;
+ 133:application/ball_control.c ****     ball_control.vision_was_valid = 0u;
+ 134:application/ball_control.c ****     ball_control.fail_safe_applied = 0u;
+ 135:application/ball_control.c ****     ball_control.last_frame_time_ms = 0u;
+ 136:application/ball_control.c ****     ball_control.last_dt_s = 0.05f;
+ 137:application/ball_control.c **** 
+ 138:application/ball_control.c ****     ball_control.filtered_pos_cm = 0.0f;
+ 139:application/ball_control.c ****     ball_control.last_filtered_pos_cm = 0.0f;
+ 140:application/ball_control.c ****     ball_control.ball_vel_cmps = 0.0f;
+ 141:application/ball_control.c **** 
+ 142:application/ball_control.c ****     ball_control.target_cm = 0.0f;
+ 143:application/ball_control.c ****     ball_control.ref_pos_cm = 0.0f;
+ 144:application/ball_control.c ****     ball_control.ref_vel_cmps = 0.0f;
+ 145:application/ball_control.c ****     ball_control.ref_acc_cmps2 = 0.0f;
+ 146:application/ball_control.c **** 
+ 147:application/ball_control.c ****     ball_control.display_pos_cm = 0.0f;
+ 148:application/ball_control.c ****     ball_control.display_valid = 0u;
+ 149:application/ball_control.c ****     ball_control.feedforward_enabled = 0u;
+ 150:application/ball_control.c **** }
+ 151:application/ball_control.c **** 
+ 152:application/ball_control.c **** /**
+ 153:application/ball_control.c ****  * @brief 进入指定任务并准备该任务的运行状态。
+ 154:application/ball_control.c ****  *
+ 155:application/ball_control.c ****  * 如果任务编号发生变化，会复位上一任务的状态。
+ 156:application/ball_control.c ****  * 同时根据任务编号决定是否启用前馈：
+ 157:application/ball_control.c ****  *   - 任务3：启用速度和加速度前馈；
+ 158:application/ball_control.c ****  *   - 其他任务：只使用 PID 反馈。
+ 159:application/ball_control.c ****  *
+ 160:application/ball_control.c ****  * @param task 当前要执行的任务编号。
+ 161:application/ball_control.c ****  */
+ 162:application/ball_control.c **** static void BallControl_BeginTask(Menu_Task_e task)
+ 163:application/ball_control.c **** {
+ 164:application/ball_control.c ****     if ((ball_control.task_active == 0u) || (ball_control.active_task != task)) {
+ 165:application/ball_control.c ****         ball_control.active_task = task;
+ 166:application/ball_control.c ****         ball_control.task_active = 1u;
+ 167:application/ball_control.c ****         BallControl_ResetRuntime();
+ 168:application/ball_control.c ****     }
+ 169:application/ball_control.c **** 
+ 170:application/ball_control.c ****     /* 任务1/2/4/5 纯 PID；任务3暂时保留速度和加速度前馈，后面再单独调。 
+ 171:application/ball_control.c ****     ball_control.feedforward_enabled =
+ 172:application/ball_control.c ****         (task == MENU_TASK_CONTINUOUS_TRACK) ? 1u : 0u;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 6
 
 
- 149 001e FFF7FEFF 		bl	OLEDMenu_RegisterTask
- 150              	.LVL3:
-  92:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_TARGET_POSITION, ball_control_task_target_position);
- 151              		.loc 1 92 5 view .LVU20
- 152 0022 0649     		ldr	r1, .L8+16
- 153 0024 0420     		movs	r0, #4
- 154 0026 FFF7FEFF 		bl	OLEDMenu_RegisterTask
- 155              	.LVL4:
-  93:application/ball_control.c **** }
- 156              		.loc 1 93 1 is_stmt 0 view .LVU21
- 157 002a 08BD     		pop	{r3, pc}
- 158              	.L9:
- 159              		.align	2
- 160              	.L8:
- 161 002c 00000000 		.word	ball_control_task_stable_position
- 162 0030 00000000 		.word	ball_control_task_back_and_forth
- 163 0034 00000000 		.word	ball_control_task_continuous_track
- 164 0038 00000000 		.word	ball_control_task_anti_disturbance
- 165 003c 00000000 		.word	ball_control_task_target_position
- 166              		.cfi_endproc
- 167              	.LFE6:
- 169              		.section	.text.BallControlTask,"ax",%progbits
- 170              		.align	1
- 171              		.global	BallControlTask
- 172              		.syntax unified
- 173              		.thumb
- 174              		.thumb_func
- 176              	BallControlTask:
- 177              	.LFB7:
-  94:application/ball_control.c **** 
-  95:application/ball_control.c **** void BallControlTask(void)
-  96:application/ball_control.c **** {
- 178              		.loc 1 96 1 is_stmt 1 view -0
- 179              		.cfi_startproc
- 180              		@ args = 0, pretend = 0, frame = 0
- 181              		@ frame_needed = 0, uses_anonymous_args = 0
- 182 0000 08B5     		push	{r3, lr}
- 183              	.LCFI1:
- 184              		.cfi_def_cfa_offset 8
- 185              		.cfi_offset 3, -8
- 186              		.cfi_offset 14, -4
-  97:application/ball_control.c ****     /* 菜单内部是死循环，选任务、执行、返回上级全在里面，不会返回到�
-  98:application/ball_control.c ****     (void)Main_Menu();
- 187              		.loc 1 98 5 view .LVU23
- 188              		.loc 1 98 11 is_stmt 0 view .LVU24
- 189 0002 FFF7FEFF 		bl	Main_Menu
- 190              	.LVL5:
-  99:application/ball_control.c **** }
- 191              		.loc 1 99 1 view .LVU25
- 192 0006 08BD     		pop	{r3, pc}
- 193              		.cfi_endproc
- 194              	.LFE7:
- 196              		.text
- 197              	.Letext0:
- 198              		.file 2 "modules/oled_menu.h"
-ARM GAS  C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s 			page 6
+ 173:application/ball_control.c **** }
+ 174:application/ball_control.c **** 
+ 175:application/ball_control.c **** /**
+ 176:application/ball_control.c ****  * @brief 把水管倾角命令转换成电机绝对角度命令。
+ 177:application/ball_control.c ****  *
+ 178:application/ball_control.c ****  * tube_angle_deg > 0 使用 dir=1，右端下降；< 0 使用 dir=0，右端上升。
+ 179:application/ball_control.c ****  *
+ 180:application/ball_control.c ****  * @param tube_angle_deg 水管目标倾角，单位度，正方向为右端下降。
+ 181:application/ball_control.c ****  */
+ 182:application/ball_control.c **** static void BallControl_ApplyTubeAngle(float tube_angle_deg)
+ 183:application/ball_control.c **** {
+ 184:application/ball_control.c ****     float motor_angle_deg;
+ 185:application/ball_control.c ****     float pos_deg;
+ 186:application/ball_control.c ****     uint8_t dir;
+ 187:application/ball_control.c **** 
+ 188:application/ball_control.c ****     if (tube_angle_deg > BALL_TUBE_ANGLE_LIMIT_DEG) {
+ 189:application/ball_control.c ****         tube_angle_deg = BALL_TUBE_ANGLE_LIMIT_DEG;
+ 190:application/ball_control.c ****     } else if (tube_angle_deg < -BALL_TUBE_ANGLE_LIMIT_DEG) {
+ 191:application/ball_control.c ****         tube_angle_deg = -BALL_TUBE_ANGLE_LIMIT_DEG;
+ 192:application/ball_control.c ****     }
+ 193:application/ball_control.c **** 
+ 194:application/ball_control.c ****     motor_angle_deg = tube_angle_deg * BALL_MOTOR_DEG_PER_TUBE_DEG;
+ 195:application/ball_control.c ****     if (motor_angle_deg >= 0.0f) {
+ 196:application/ball_control.c ****         dir = 1u;
+ 197:application/ball_control.c ****         pos_deg = motor_angle_deg;
+ 198:application/ball_control.c ****     } else {
+ 199:application/ball_control.c ****         dir = 0u;
+ 200:application/ball_control.c ****         pos_deg = -motor_angle_deg;
+ 201:application/ball_control.c ****     }
+ 202:application/ball_control.c **** 
+ 203:application/ball_control.c ****     X_V2_Bypass_Pos_LV_LC_Control(BALL_MOTOR_ADDR,
+ 204:application/ball_control.c ****                                   dir,
+ 205:application/ball_control.c ****                                   BALL_MOTOR_SPEED_RPM,
+ 206:application/ball_control.c ****                                   pos_deg,
+ 207:application/ball_control.c ****                                   1u,
+ 208:application/ball_control.c ****                                   false,
+ 209:application/ball_control.c ****                                   BALL_MOTOR_CURRENT_MA);
+ 210:application/ball_control.c **** }
+ 211:application/ball_control.c **** 
+ 212:application/ball_control.c **** /**
+ 213:application/ball_control.c ****  * @brief 更新目标位置参考轨迹。
+ 214:application/ball_control.c ****  *
+ 215:application/ball_control.c ****  * 根据最终目标 target_cm，生成平滑的 ref_pos_cm、ref_vel_cmps 和 ref_acc_cmps2，
+ 216:application/ball_control.c ****  * 避免目标位置直接阶跃造成球被甩出去。
+ 217:application/ball_control.c ****  *
+ 218:application/ball_control.c ****  * @param dt_s 本次控制周期，单位 s。
+ 219:application/ball_control.c ****  */
+ 220:application/ball_control.c **** static void BallControl_UpdateReferenceRamp(float dt_s)
+ 221:application/ball_control.c **** {
+  85              		.loc 1 221 1 is_stmt 1 view -0
+  86              		.cfi_startproc
+  87              		@ args = 0, pretend = 0, frame = 0
+  88              		@ frame_needed = 0, uses_anonymous_args = 0
+  89              		.loc 1 221 1 is_stmt 0 view .LVU13
+  90 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+  91              	.LCFI1:
+  92              		.cfi_def_cfa_offset 24
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 7
+
+
+  93              		.cfi_offset 4, -24
+  94              		.cfi_offset 5, -20
+  95              		.cfi_offset 6, -16
+  96              		.cfi_offset 7, -12
+  97              		.cfi_offset 8, -8
+  98              		.cfi_offset 14, -4
+  99 0004 0546     		mov	r5, r0
+ 222:application/ball_control.c ****     float error_cm = ball_control.target_cm - ball_control.ref_pos_cm;
+ 100              		.loc 1 222 5 is_stmt 1 view .LVU14
+ 101              		.loc 1 222 34 is_stmt 0 view .LVU15
+ 102 0006 254B     		ldr	r3, .L12
+ 103              		.loc 1 222 59 view .LVU16
+ 104 0008 9F6D     		ldr	r7, [r3, #88]	@ float
+ 105              		.loc 1 222 11 view .LVU17
+ 106 000a 3946     		mov	r1, r7
+ 107 000c 586D     		ldr	r0, [r3, #84]	@ float
+ 108              	.LVL6:
+ 109              		.loc 1 222 11 view .LVU18
+ 110 000e FFF7FEFF 		bl	__aeabi_fsub
+ 111              	.LVL7:
+ 112 0012 0146     		mov	r1, r0
+ 113              	.LVL8:
+ 223:application/ball_control.c ****     float desired_vel_cmps = error_cm * BALL_REF_POS_GAIN;
+ 114              		.loc 1 223 5 is_stmt 1 view .LVU19
+ 115              		.loc 1 223 11 is_stmt 0 view .LVU20
+ 116 0014 FFF7FEFF 		bl	__aeabi_fadd
+ 117              	.LVL9:
+ 118              		.loc 1 223 11 view .LVU21
+ 119 0018 0446     		mov	r4, r0
+ 120              	.LVL10:
+ 224:application/ball_control.c ****     float dv_cmps;
+ 121              		.loc 1 224 5 is_stmt 1 view .LVU22
+ 225:application/ball_control.c ****     float max_dv_cmps;
+ 122              		.loc 1 225 5 view .LVU23
+ 226:application/ball_control.c **** 
+ 227:application/ball_control.c ****     if (desired_vel_cmps > BALL_REF_MAX_VEL_CMPS) {
+ 123              		.loc 1 227 5 view .LVU24
+ 124              		.loc 1 227 8 is_stmt 0 view .LVU25
+ 125 001a 2149     		ldr	r1, .L12+4
+ 126 001c FFF7FEFF 		bl	__aeabi_fcmpgt
+ 127              	.LVL11:
+ 128              		.loc 1 227 8 view .LVU26
+ 129 0020 30B9     		cbnz	r0, .L9
+ 228:application/ball_control.c ****         desired_vel_cmps = BALL_REF_MAX_VEL_CMPS;
+ 229:application/ball_control.c ****     } else if (desired_vel_cmps < -BALL_REF_MAX_VEL_CMPS) {
+ 130              		.loc 1 229 12 is_stmt 1 view .LVU27
+ 131              		.loc 1 229 15 is_stmt 0 view .LVU28
+ 132 0022 2049     		ldr	r1, .L12+8
+ 133 0024 2046     		mov	r0, r4
+ 134 0026 FFF7FEFF 		bl	__aeabi_fcmplt
+ 135              	.LVL12:
+ 136 002a 10B1     		cbz	r0, .L7
+ 230:application/ball_control.c ****         desired_vel_cmps = -BALL_REF_MAX_VEL_CMPS;
+ 137              		.loc 1 230 26 view .LVU29
+ 138 002c 1D4C     		ldr	r4, .L12+8
+ 139              	.LVL13:
+ 140              		.loc 1 230 26 view .LVU30
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 8
+
+
+ 141 002e 00E0     		b	.L7
+ 142              	.LVL14:
+ 143              	.L9:
+ 228:application/ball_control.c ****         desired_vel_cmps = BALL_REF_MAX_VEL_CMPS;
+ 144              		.loc 1 228 26 view .LVU31
+ 145 0030 1B4C     		ldr	r4, .L12+4
+ 146              	.LVL15:
+ 147              	.L7:
+ 231:application/ball_control.c ****     }
+ 232:application/ball_control.c **** 
+ 233:application/ball_control.c ****     dv_cmps = desired_vel_cmps - ball_control.ref_vel_cmps;
+ 148              		.loc 1 233 5 is_stmt 1 view .LVU32
+ 149              		.loc 1 233 46 is_stmt 0 view .LVU33
+ 150 0032 1A4B     		ldr	r3, .L12
+ 151 0034 D3F85C80 		ldr	r8, [r3, #92]	@ float
+ 152              		.loc 1 233 13 view .LVU34
+ 153 0038 4146     		mov	r1, r8
+ 154 003a 2046     		mov	r0, r4
+ 155 003c FFF7FEFF 		bl	__aeabi_fsub
+ 156              	.LVL16:
+ 157 0040 0646     		mov	r6, r0
+ 158              	.LVL17:
+ 234:application/ball_control.c ****     max_dv_cmps = BALL_REF_ACCEL_CMPS2 * dt_s;
+ 159              		.loc 1 234 5 is_stmt 1 view .LVU35
+ 160              		.loc 1 234 17 is_stmt 0 view .LVU36
+ 161 0042 1949     		ldr	r1, .L12+12
+ 162 0044 2846     		mov	r0, r5
+ 163              	.LVL18:
+ 164              		.loc 1 234 17 view .LVU37
+ 165 0046 FFF7FEFF 		bl	__aeabi_fmul
+ 166              	.LVL19:
+ 167 004a 0446     		mov	r4, r0
+ 168              	.LVL20:
+ 235:application/ball_control.c ****     if (dv_cmps > max_dv_cmps) {
+ 169              		.loc 1 235 5 is_stmt 1 view .LVU38
+ 170              		.loc 1 235 8 is_stmt 0 view .LVU39
+ 171 004c 0146     		mov	r1, r0
+ 172 004e 3046     		mov	r0, r6
+ 173              	.LVL21:
+ 174              		.loc 1 235 8 view .LVU40
+ 175 0050 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 176              	.LVL22:
+ 177              		.loc 1 235 8 view .LVU41
+ 178 0054 38B9     		cbnz	r0, .L8
+ 236:application/ball_control.c ****         dv_cmps = max_dv_cmps;
+ 237:application/ball_control.c ****     } else if (dv_cmps < -max_dv_cmps) {
+ 179              		.loc 1 237 12 is_stmt 1 view .LVU42
+ 180              		.loc 1 237 26 is_stmt 0 view .LVU43
+ 181 0056 04F10040 		add	r0, r4, #-2147483648
+ 182 005a 0446     		mov	r4, r0
+ 183              	.LVL23:
+ 184              		.loc 1 237 15 view .LVU44
+ 185 005c 3146     		mov	r1, r6
+ 186 005e FFF7FEFF 		bl	__aeabi_fcmpgt
+ 187              	.LVL24:
+ 188 0062 00B9     		cbnz	r0, .L8
+ 233:application/ball_control.c ****     max_dv_cmps = BALL_REF_ACCEL_CMPS2 * dt_s;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 9
+
+
+ 189              		.loc 1 233 13 view .LVU45
+ 190 0064 3446     		mov	r4, r6
+ 191              	.L8:
+ 192              	.LVL25:
+ 238:application/ball_control.c ****         dv_cmps = -max_dv_cmps;
+ 239:application/ball_control.c ****     }
+ 240:application/ball_control.c **** 
+ 241:application/ball_control.c ****     ball_control.ref_vel_cmps += dv_cmps;
+ 193              		.loc 1 241 5 is_stmt 1 view .LVU46
+ 194              		.loc 1 241 31 is_stmt 0 view .LVU47
+ 195 0066 2146     		mov	r1, r4
+ 196 0068 4046     		mov	r0, r8
+ 197 006a FFF7FEFF 		bl	__aeabi_fadd
+ 198              	.LVL26:
+ 199 006e 0646     		mov	r6, r0
+ 200 0070 DFF82880 		ldr	r8, .L12
+ 201 0074 C8F85C00 		str	r0, [r8, #92]	@ float
+ 242:application/ball_control.c ****     ball_control.ref_acc_cmps2 = dv_cmps / dt_s;
+ 202              		.loc 1 242 5 is_stmt 1 view .LVU48
+ 203              		.loc 1 242 42 is_stmt 0 view .LVU49
+ 204 0078 2946     		mov	r1, r5
+ 205 007a 2046     		mov	r0, r4
+ 206 007c FFF7FEFF 		bl	__aeabi_fdiv
+ 207              	.LVL27:
+ 208              		.loc 1 242 32 view .LVU50
+ 209 0080 C8F86000 		str	r0, [r8, #96]	@ float
+ 243:application/ball_control.c ****     ball_control.ref_pos_cm += ball_control.ref_vel_cmps * dt_s;
+ 210              		.loc 1 243 5 is_stmt 1 view .LVU51
+ 211              		.loc 1 243 58 is_stmt 0 view .LVU52
+ 212 0084 2946     		mov	r1, r5
+ 213 0086 3046     		mov	r0, r6
+ 214 0088 FFF7FEFF 		bl	__aeabi_fmul
+ 215              	.LVL28:
+ 216 008c 0146     		mov	r1, r0
+ 217              		.loc 1 243 29 view .LVU53
+ 218 008e 3846     		mov	r0, r7
+ 219 0090 FFF7FEFF 		bl	__aeabi_fadd
+ 220              	.LVL29:
+ 221 0094 C8F85800 		str	r0, [r8, #88]	@ float
+ 244:application/ball_control.c **** }
+ 222              		.loc 1 244 1 view .LVU54
+ 223 0098 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 224              	.LVL30:
+ 225              	.L13:
+ 226              		.loc 1 244 1 view .LVU55
+ 227              		.align	2
+ 228              	.L12:
+ 229 009c 00000000 		.word	ball_control
+ 230 00a0 0000C040 		.word	1086324736
+ 231 00a4 0000C0C0 		.word	-1061158912
+ 232 00a8 00004041 		.word	1094713344
+ 233              		.cfi_endproc
+ 234              	.LFE73:
+ 236              		.section	.text.BallControl_IsStable,"ax",%progbits
+ 237              		.align	1
+ 238              		.syntax unified
+ 239              		.thumb
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 10
+
+
+ 240              		.thumb_func
+ 242              	BallControl_IsStable:
+ 243              	.LVL31:
+ 244              	.LFB75:
+ 245:application/ball_control.c **** 
+ 246:application/ball_control.c **** /**
+ 247:application/ball_control.c ****  * @brief 执行一次位置闭环控制。
+ 248:application/ball_control.c ****  *
+ 249:application/ball_control.c ****  * 读取参考位置和滤波后的球位置，计算 PID 输出，再根据任务类型决定是�
+ 250:application/ball_control.c ****  *   - 速度补偿；
+ 251:application/ball_control.c ****  *   - 加速度前馈。
+ 252:application/ball_control.c ****  *
+ 253:application/ball_control.c ****  * 任务1/2/4/5 只使用 PID；任务3保留前馈。
+ 254:application/ball_control.c ****  */
+ 255:application/ball_control.c **** static void BallControl_UpdateControlLoop(void)
+ 256:application/ball_control.c **** {
+ 257:application/ball_control.c ****     float error_cm = ball_control.ref_pos_cm - ball_control.filtered_pos_cm;
+ 258:application/ball_control.c ****     float pid_out_deg;
+ 259:application/ball_control.c ****     float velocity_trim_deg;
+ 260:application/ball_control.c ****     float accel_ff_deg;
+ 261:application/ball_control.c ****     float tube_angle_deg;
+ 262:application/ball_control.c **** 
+ 263:application/ball_control.c ****     /* 大误差或高速阶段不积分，避免积分饱和。 */
+ 264:application/ball_control.c ****     if ((fabsf(error_cm) > BALL_PID_INTEGRAL_ZONE_CM) ||
+ 265:application/ball_control.c ****         (fabsf(ball_control.ball_vel_cmps) > BALL_PID_INTEGRAL_VEL_CMPS)) {
+ 266:application/ball_control.c ****         PIDResetIntegral(&ball_control.pid);
+ 267:application/ball_control.c ****     }
+ 268:application/ball_control.c **** 
+ 269:application/ball_control.c ****     ball_control.pid.dt_s = ball_control.last_dt_s;
+ 270:application/ball_control.c ****     pid_out_deg = PIDCalculate(&ball_control.pid,
+ 271:application/ball_control.c ****                                ball_control.ref_pos_cm,
+ 272:application/ball_control.c ****                                ball_control.filtered_pos_cm);
+ 273:application/ball_control.c **** 
+ 274:application/ball_control.c ****     /*
+ 275:application/ball_control.c ****      * 任务1/2/4/5 只使用 PID 反馈，不再叠加速度和加速度前馈。
+ 276:application/ball_control.c ****      * 任务3保留这两项，用于后续正弦跟踪调试。
+ 277:application/ball_control.c ****      */
+ 278:application/ball_control.c ****     velocity_trim_deg = 0.0f;
+ 279:application/ball_control.c ****     accel_ff_deg = 0.0f;
+ 280:application/ball_control.c ****     if (ball_control.feedforward_enabled != 0u) {
+ 281:application/ball_control.c ****         velocity_trim_deg = BALL_PID_KD * ball_control.ref_vel_cmps;
+ 282:application/ball_control.c ****         accel_ff_deg = BALL_FF_ACCEL_DEG_PER_CMPS2 * ball_control.ref_acc_cmps2;
+ 283:application/ball_control.c ****     }
+ 284:application/ball_control.c **** 
+ 285:application/ball_control.c ****     tube_angle_deg = pid_out_deg + velocity_trim_deg + accel_ff_deg;
+ 286:application/ball_control.c ****     BallControl_ApplyTubeAngle(tube_angle_deg);
+ 287:application/ball_control.c **** }
+ 288:application/ball_control.c **** 
+ 289:application/ball_control.c **** /**
+ 290:application/ball_control.c ****  * @brief 判断钢球是否达到稳定条件。
+ 291:application/ball_control.c ****  *
+ 292:application/ball_control.c ****  * 稳定条件：
+ 293:application/ball_control.c ****  *   - 球与目标的位置误差不超过 error_limit_cm；
+ 294:application/ball_control.c ****  *   - 球的速度不超过 BALL_STABLE_VEL_CMPS。
+ 295:application/ball_control.c ****  *
+ 296:application/ball_control.c ****  * @param error_limit_cm 允许的位置误差，单位 cm。
+ 297:application/ball_control.c ****  * @return 1 = 稳定；0 = 未稳定。
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 11
+
+
+ 298:application/ball_control.c ****  */
+ 299:application/ball_control.c **** static uint8_t BallControl_IsStable(float error_limit_cm)
+ 300:application/ball_control.c **** {
+ 245              		.loc 1 300 1 is_stmt 1 view -0
+ 246              		.cfi_startproc
+ 247              		@ args = 0, pretend = 0, frame = 0
+ 248              		@ frame_needed = 0, uses_anonymous_args = 0
+ 249              		.loc 1 300 1 is_stmt 0 view .LVU57
+ 250 0000 10B5     		push	{r4, lr}
+ 251              	.LCFI2:
+ 252              		.cfi_def_cfa_offset 8
+ 253              		.cfi_offset 4, -8
+ 254              		.cfi_offset 14, -4
+ 255 0002 0446     		mov	r4, r0
+ 301:application/ball_control.c ****     return ((fabsf(ball_control.target_cm - ball_control.filtered_pos_cm) <= error_limit_cm) &&
+ 256              		.loc 1 301 5 is_stmt 1 view .LVU58
+ 257              		.loc 1 301 32 is_stmt 0 view .LVU59
+ 258 0004 0B4B     		ldr	r3, .L22
+ 259              		.loc 1 301 43 view .LVU60
+ 260 0006 996C     		ldr	r1, [r3, #72]	@ float
+ 261 0008 586D     		ldr	r0, [r3, #84]	@ float
+ 262              	.LVL32:
+ 263              		.loc 1 301 43 view .LVU61
+ 264 000a FFF7FEFF 		bl	__aeabi_fsub
+ 265              	.LVL33:
+ 266              		.loc 1 301 14 view .LVU62
+ 267 000e 20F00040 		bic	r0, r0, #-2147483648
+ 302:application/ball_control.c ****             (fabsf(ball_control.ball_vel_cmps) <= BALL_STABLE_VEL_CMPS)) ? 1u : 0u;
+ 268              		.loc 1 302 79 view .LVU63
+ 269 0012 2146     		mov	r1, r4
+ 270 0014 FFF7FEFF 		bl	__aeabi_fcmple
+ 271              	.LVL34:
+ 272 0018 50B1     		cbz	r0, .L20
+ 273              		.loc 1 302 32 discriminator 1 view .LVU64
+ 274 001a 064B     		ldr	r3, .L22
+ 275 001c 186D     		ldr	r0, [r3, #80]	@ float
+ 276              		.loc 1 302 14 discriminator 1 view .LVU65
+ 277 001e 20F00040 		bic	r0, r0, #-2147483648
+ 301:application/ball_control.c ****     return ((fabsf(ball_control.target_cm - ball_control.filtered_pos_cm) <= error_limit_cm) &&
+ 278              		.loc 1 301 94 view .LVU66
+ 279 0022 4FF08041 		mov	r1, #1073741824
+ 280 0026 FFF7FEFF 		bl	__aeabi_fcmple
+ 281              	.LVL35:
+ 282 002a 10B1     		cbz	r0, .L15
+ 283              		.loc 1 302 79 view .LVU67
+ 284 002c 0120     		movs	r0, #1
+ 285 002e 00E0     		b	.L15
+ 286              	.L20:
+ 287              		.loc 1 302 79 discriminator 2 view .LVU68
+ 288 0030 0020     		movs	r0, #0
+ 289              	.L15:
+ 303:application/ball_control.c **** }
+ 290              		.loc 1 303 1 view .LVU69
+ 291 0032 10BD     		pop	{r4, pc}
+ 292              	.LVL36:
+ 293              	.L23:
+ 294              		.loc 1 303 1 view .LVU70
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 12
+
+
+ 295              		.align	2
+ 296              	.L22:
+ 297 0034 00000000 		.word	ball_control
+ 298              		.cfi_endproc
+ 299              	.LFE75:
+ 301              		.section	.text.BallControl_ApplyTubeAngle,"ax",%progbits
+ 302              		.align	1
+ 303              		.syntax unified
+ 304              		.thumb
+ 305              		.thumb_func
+ 307              	BallControl_ApplyTubeAngle:
+ 308              	.LVL37:
+ 309              	.LFB72:
+ 183:application/ball_control.c ****     float motor_angle_deg;
+ 310              		.loc 1 183 1 is_stmt 1 view -0
+ 311              		.cfi_startproc
+ 312              		@ args = 0, pretend = 0, frame = 0
+ 313              		@ frame_needed = 0, uses_anonymous_args = 0
+ 183:application/ball_control.c ****     float motor_angle_deg;
+ 314              		.loc 1 183 1 is_stmt 0 view .LVU72
+ 315 0000 10B5     		push	{r4, lr}
+ 316              	.LCFI3:
+ 317              		.cfi_def_cfa_offset 8
+ 318              		.cfi_offset 4, -8
+ 319              		.cfi_offset 14, -4
+ 320 0002 84B0     		sub	sp, sp, #16
+ 321              	.LCFI4:
+ 322              		.cfi_def_cfa_offset 24
+ 323 0004 0446     		mov	r4, r0
+ 184:application/ball_control.c ****     float pos_deg;
+ 324              		.loc 1 184 5 is_stmt 1 view .LVU73
+ 185:application/ball_control.c ****     uint8_t dir;
+ 325              		.loc 1 185 5 view .LVU74
+ 186:application/ball_control.c **** 
+ 326              		.loc 1 186 5 view .LVU75
+ 188:application/ball_control.c ****         tube_angle_deg = BALL_TUBE_ANGLE_LIMIT_DEG;
+ 327              		.loc 1 188 5 view .LVU76
+ 188:application/ball_control.c ****         tube_angle_deg = BALL_TUBE_ANGLE_LIMIT_DEG;
+ 328              		.loc 1 188 8 is_stmt 0 view .LVU77
+ 329 0006 1449     		ldr	r1, .L31
+ 330 0008 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 331              	.LVL38:
+ 188:application/ball_control.c ****         tube_angle_deg = BALL_TUBE_ANGLE_LIMIT_DEG;
+ 332              		.loc 1 188 8 view .LVU78
+ 333 000c A8B9     		cbnz	r0, .L27
+ 190:application/ball_control.c ****         tube_angle_deg = -BALL_TUBE_ANGLE_LIMIT_DEG;
+ 334              		.loc 1 190 12 is_stmt 1 view .LVU79
+ 190:application/ball_control.c ****         tube_angle_deg = -BALL_TUBE_ANGLE_LIMIT_DEG;
+ 335              		.loc 1 190 15 is_stmt 0 view .LVU80
+ 336 000e 1349     		ldr	r1, .L31+4
+ 337 0010 2046     		mov	r0, r4
+ 338 0012 FFF7FEFF 		bl	__aeabi_fcmplt
+ 339              	.LVL39:
+ 340 0016 58B9     		cbnz	r0, .L28
+ 194:application/ball_control.c ****     if (motor_angle_deg >= 0.0f) {
+ 341              		.loc 1 194 5 is_stmt 1 view .LVU81
+ 194:application/ball_control.c ****     if (motor_angle_deg >= 0.0f) {
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 13
+
+
+ 342              		.loc 1 194 21 is_stmt 0 view .LVU82
+ 343 0018 4FF08141 		mov	r1, #1082130432
+ 344 001c 2046     		mov	r0, r4
+ 345 001e FFF7FEFF 		bl	__aeabi_fmul
+ 346              	.LVL40:
+ 347 0022 0446     		mov	r4, r0
+ 348              	.LVL41:
+ 195:application/ball_control.c ****         dir = 1u;
+ 349              		.loc 1 195 5 is_stmt 1 view .LVU83
+ 195:application/ball_control.c ****         dir = 1u;
+ 350              		.loc 1 195 8 is_stmt 0 view .LVU84
+ 351 0024 0021     		movs	r1, #0
+ 352 0026 FFF7FEFF 		bl	__aeabi_fcmpge
+ 353              	.LVL42:
+ 195:application/ball_control.c ****         dir = 1u;
+ 354              		.loc 1 195 8 view .LVU85
+ 355 002a 10B1     		cbz	r0, .L26
+ 196:application/ball_control.c ****         pos_deg = motor_angle_deg;
+ 356              		.loc 1 196 13 view .LVU86
+ 357 002c 0121     		movs	r1, #1
+ 358 002e 06E0     		b	.L25
+ 359              	.LVL43:
+ 360              	.L28:
+ 194:application/ball_control.c ****     if (motor_angle_deg >= 0.0f) {
+ 361              		.loc 1 194 21 view .LVU87
+ 362 0030 0B4C     		ldr	r4, .L31+8
+ 363              	.LVL44:
+ 364              	.L26:
+ 199:application/ball_control.c ****         pos_deg = -motor_angle_deg;
+ 365              		.loc 1 199 9 is_stmt 1 view .LVU88
+ 200:application/ball_control.c ****     }
+ 366              		.loc 1 200 9 view .LVU89
+ 200:application/ball_control.c ****     }
+ 367              		.loc 1 200 17 is_stmt 0 view .LVU90
+ 368 0032 04F10044 		add	r4, r4, #-2147483648
+ 369              	.LVL45:
+ 199:application/ball_control.c ****         pos_deg = -motor_angle_deg;
+ 370              		.loc 1 199 13 view .LVU91
+ 371 0036 0021     		movs	r1, #0
+ 372 0038 01E0     		b	.L25
+ 373              	.LVL46:
+ 374              	.L27:
+ 196:application/ball_control.c ****         pos_deg = motor_angle_deg;
+ 375              		.loc 1 196 13 view .LVU92
+ 376 003a 0121     		movs	r1, #1
+ 197:application/ball_control.c ****     } else {
+ 377              		.loc 1 197 17 view .LVU93
+ 378 003c 094C     		ldr	r4, .L31+12
+ 379              	.LVL47:
+ 380              	.L25:
+ 203:application/ball_control.c ****                                   dir,
+ 381              		.loc 1 203 5 is_stmt 1 view .LVU94
+ 382 003e 4FF49663 		mov	r3, #1200
+ 383 0042 0293     		str	r3, [sp, #8]
+ 384 0044 0023     		movs	r3, #0
+ 385 0046 0193     		str	r3, [sp, #4]
+ 386 0048 0120     		movs	r0, #1
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 14
+
+
+ 387 004a 0090     		str	r0, [sp]
+ 388 004c 2346     		mov	r3, r4
+ 389 004e 064A     		ldr	r2, .L31+16
+ 390 0050 FFF7FEFF 		bl	X_V2_Bypass_Pos_LV_LC_Control
+ 391              	.LVL48:
+ 210:application/ball_control.c **** 
+ 392              		.loc 1 210 1 is_stmt 0 view .LVU95
+ 393 0054 04B0     		add	sp, sp, #16
+ 394              	.LCFI5:
+ 395              		.cfi_def_cfa_offset 8
+ 396              		@ sp needed
+ 397 0056 10BD     		pop	{r4, pc}
+ 398              	.LVL49:
+ 399              	.L32:
+ 210:application/ball_control.c **** 
+ 400              		.loc 1 210 1 view .LVU96
+ 401              		.align	2
+ 402              	.L31:
+ 403 0058 00006040 		.word	1080033280
+ 404 005c 000060C0 		.word	-1067450368
+ 405 0060 000060C1 		.word	-1050673152
+ 406 0064 00006041 		.word	1096810496
+ 407 0068 00007042 		.word	1114636288
+ 408              		.cfi_endproc
+ 409              	.LFE72:
+ 411              		.section	.text.ball_control_update_menu_position,"ax",%progbits
+ 412              		.align	1
+ 413              		.syntax unified
+ 414              		.thumb
+ 415              		.thumb_func
+ 417              	ball_control_update_menu_position:
+ 418              	.LFB77:
+ 304:application/ball_control.c **** 
+ 305:application/ball_control.c **** /**
+ 306:application/ball_control.c ****  * @brief 读取一帧 K230 数据并执行一次控制。
+ 307:application/ball_control.c ****  *
+ 308:application/ball_control.c ****  * 处理内容：
+ 309:application/ball_control.c ****  *   - 检查视觉数据是否有效；
+ 310:application/ball_control.c ****  *   - 按视觉帧时间戳计算控制周期；
+ 311:application/ball_control.c ****  *   - 对球位置和球速度做低通滤波；
+ 312:application/ball_control.c ****  *   - 生成参考目标（斜坡或正弦）；
+ 313:application/ball_control.c ****  *   - 调用 BallControl_UpdateControlLoop() 输出电机命令。
+ 314:application/ball_control.c ****  *
+ 315:application/ball_control.c ****  * @param ref_mode 参考目标生成模式：
+ 316:application/ball_control.c ****  *                 BALL_REF_RAMP = 斜坡目标；
+ 317:application/ball_control.c ****  *                 BALL_REF_SINE = 正弦目标。
+ 318:application/ball_control.c ****  * @return 1 = 本次处理了新的有效视觉帧；0 = 没有新数据或视觉无效。
+ 319:application/ball_control.c ****  */
+ 320:application/ball_control.c **** static uint8_t BallControl_Update(Ball_RefMode_e ref_mode)
+ 321:application/ball_control.c **** {
+ 322:application/ball_control.c ****     K230_Data_s data;
+ 323:application/ball_control.c ****     float dt_s;
+ 324:application/ball_control.c ****     float raw_vel_cmps;
+ 325:application/ball_control.c ****     float ref_phase;
+ 326:application/ball_control.c **** 
+ 327:application/ball_control.c ****     if (ball_control.k230_instance == NULL) {
+ 328:application/ball_control.c ****         BallControl_ApplyTubeAngle(0.0f);
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 15
+
+
+ 329:application/ball_control.c ****         return 0u;
+ 330:application/ball_control.c ****     }
+ 331:application/ball_control.c **** 
+ 332:application/ball_control.c ****     if (K230ToStm32GetData(ball_control.k230_instance, &data) == 0u) {
+ 333:application/ball_control.c ****         /* 钢球丢失或视觉超时：只执行一次安全动作，禁止沿用旧位置。 */
+ 334:application/ball_control.c ****         if (ball_control.fail_safe_applied == 0u) {
+ 335:application/ball_control.c ****             PIDReset(&ball_control.pid);
+ 336:application/ball_control.c ****             BallControl_ApplyTubeAngle(0.0f);
+ 337:application/ball_control.c ****             ball_control.fail_safe_applied = 1u;
+ 338:application/ball_control.c ****         }
+ 339:application/ball_control.c ****         ball_control.vision_was_valid = 0u;
+ 340:application/ball_control.c ****         return 0u;
+ 341:application/ball_control.c ****     }
+ 342:application/ball_control.c **** 
+ 343:application/ball_control.c ****     if ((ball_control.have_last_frame != 0u) &&
+ 344:application/ball_control.c ****         ((data.last_frame_time_ms - ball_control.last_frame_time_ms) > BALL_TASK_RESET_GAP_MS)) {
+ 345:application/ball_control.c ****         /* 任务中间隔太久，按重新进入任务处理。 */
+ 346:application/ball_control.c ****         BallControl_ResetRuntime();
+ 347:application/ball_control.c ****     }
+ 348:application/ball_control.c **** 
+ 349:application/ball_control.c ****     if ((ball_control.have_last_frame != 0u) &&
+ 350:application/ball_control.c ****         (data.last_frame_time_ms == ball_control.last_frame_time_ms)) {
+ 351:application/ball_control.c ****         return 0u;
+ 352:application/ball_control.c ****     }
+ 353:application/ball_control.c **** 
+ 354:application/ball_control.c ****     if (ball_control.have_last_frame != 0u) {
+ 355:application/ball_control.c ****         dt_s = (float)(data.last_frame_time_ms - ball_control.last_frame_time_ms) * 0.001f;
+ 356:application/ball_control.c ****         if (dt_s < 0.02f) {
+ 357:application/ball_control.c ****             dt_s = 0.02f;
+ 358:application/ball_control.c ****         } else if (dt_s > 0.10f) {
+ 359:application/ball_control.c ****             dt_s = 0.10f;
+ 360:application/ball_control.c ****         }
+ 361:application/ball_control.c ****     } else {
+ 362:application/ball_control.c ****         dt_s = 0.05f;
+ 363:application/ball_control.c ****     }
+ 364:application/ball_control.c **** 
+ 365:application/ball_control.c ****     ball_control.last_frame_time_ms = data.last_frame_time_ms;
+ 366:application/ball_control.c ****     ball_control.have_last_frame = 1u;
+ 367:application/ball_control.c ****     ball_control.vision_was_valid = 1u;
+ 368:application/ball_control.c ****     ball_control.fail_safe_applied = 0u;
+ 369:application/ball_control.c ****     ball_control.last_dt_s = dt_s;
+ 370:application/ball_control.c **** 
+ 371:application/ball_control.c ****     if (ball_control.filter_initialized == 0u) {
+ 372:application/ball_control.c ****         ball_control.filtered_pos_cm = data.pos_cm;
+ 373:application/ball_control.c ****         ball_control.last_filtered_pos_cm = data.pos_cm;
+ 374:application/ball_control.c ****         ball_control.ball_vel_cmps = 0.0f;
+ 375:application/ball_control.c ****         ball_control.ref_pos_cm = data.pos_cm;
+ 376:application/ball_control.c ****         ball_control.ref_vel_cmps = 0.0f;
+ 377:application/ball_control.c ****         ball_control.ref_acc_cmps2 = 0.0f;
+ 378:application/ball_control.c ****         ball_control.filter_initialized = 1u;
+ 379:application/ball_control.c ****     } else {
+ 380:application/ball_control.c ****         ball_control.filtered_pos_cm += BALL_POS_FILTER_ALPHA *
+ 381:application/ball_control.c ****                                         (data.pos_cm - ball_control.filtered_pos_cm);
+ 382:application/ball_control.c **** 
+ 383:application/ball_control.c ****         raw_vel_cmps = (ball_control.filtered_pos_cm - ball_control.last_filtered_pos_cm) / dt_s;
+ 384:application/ball_control.c ****         ball_control.last_filtered_pos_cm = ball_control.filtered_pos_cm;
+ 385:application/ball_control.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 16
+
+
+ 386:application/ball_control.c ****         if (raw_vel_cmps > BALL_MAX_VELOCITY_CMPS) {
+ 387:application/ball_control.c ****             raw_vel_cmps = BALL_MAX_VELOCITY_CMPS;
+ 388:application/ball_control.c ****         } else if (raw_vel_cmps < -BALL_MAX_VELOCITY_CMPS) {
+ 389:application/ball_control.c ****             raw_vel_cmps = -BALL_MAX_VELOCITY_CMPS;
+ 390:application/ball_control.c ****         }
+ 391:application/ball_control.c **** 
+ 392:application/ball_control.c ****         ball_control.ball_vel_cmps += BALL_VEL_FILTER_ALPHA *
+ 393:application/ball_control.c ****                                       (raw_vel_cmps - ball_control.ball_vel_cmps);
+ 394:application/ball_control.c ****     }
+ 395:application/ball_control.c **** 
+ 396:application/ball_control.c ****     ball_control.display_pos_cm = ball_control.filtered_pos_cm;
+ 397:application/ball_control.c ****     ball_control.display_valid = 1u;
+ 398:application/ball_control.c **** 
+ 399:application/ball_control.c ****     if (ref_mode == BALL_REF_SINE) {
+ 400:application/ball_control.c ****         ref_phase = BALL_TRACK_OMEGA_RADPS * ball_control.task_elapsed_s;
+ 401:application/ball_control.c ****         ball_control.ref_pos_cm = BALL_TRACK_AMPLITUDE_CM * sinf(ref_phase);
+ 402:application/ball_control.c ****         ball_control.ref_vel_cmps = BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS * cosf(ref_pha
+ 403:application/ball_control.c ****         ball_control.ref_acc_cmps2 = -BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS *
+ 404:application/ball_control.c ****                                      BALL_TRACK_OMEGA_RADPS * sinf(ref_phase);
+ 405:application/ball_control.c ****     } else {
+ 406:application/ball_control.c ****         BallControl_UpdateReferenceRamp(dt_s);
+ 407:application/ball_control.c ****     }
+ 408:application/ball_control.c **** 
+ 409:application/ball_control.c ****     BallControl_UpdateControlLoop();
+ 410:application/ball_control.c ****     return 1u;
+ 411:application/ball_control.c **** }
+ 412:application/ball_control.c **** 
+ 413:application/ball_control.c **** /**
+ 414:application/ball_control.c ****  * @brief 把当前球位置、参考目标和球速度推送到 OLED 菜单显示。
+ 415:application/ball_control.c ****  *
+ 416:application/ball_control.c ****  * 只负责显示，不参与控制计算。
+ 417:application/ball_control.c ****  */
+ 418:application/ball_control.c **** static void ball_control_update_menu_position(void)
+ 419:application/ball_control.c **** {
+ 419              		.loc 1 419 1 is_stmt 1 view -0
+ 420              		.cfi_startproc
+ 421              		@ args = 0, pretend = 0, frame = 0
+ 422              		@ frame_needed = 0, uses_anonymous_args = 0
+ 420:application/ball_control.c ****     if (ball_control.display_valid != 0u) {
+ 423              		.loc 1 420 5 view .LVU98
+ 424              		.loc 1 420 21 is_stmt 0 view .LVU99
+ 425 0000 084B     		ldr	r3, .L40
+ 426 0002 93F86830 		ldrb	r3, [r3, #104]	@ zero_extendqisi2
+ 427              		.loc 1 420 8 view .LVU100
+ 428 0006 03B9     		cbnz	r3, .L39
+ 429 0008 7047     		bx	lr
+ 430              	.L39:
+ 419:application/ball_control.c ****     if (ball_control.display_valid != 0u) {
+ 431              		.loc 1 419 1 view .LVU101
+ 432 000a 10B5     		push	{r4, lr}
+ 433              	.LCFI6:
+ 434              		.cfi_def_cfa_offset 8
+ 435              		.cfi_offset 4, -8
+ 436              		.cfi_offset 14, -4
+ 421:application/ball_control.c ****         OLEDMenu_SetBallPositionCm(ball_control.display_pos_cm);
+ 437              		.loc 1 421 9 is_stmt 1 view .LVU102
+ 438 000c 054C     		ldr	r4, .L40
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 17
+
+
+ 439 000e 606E     		ldr	r0, [r4, #100]	@ float
+ 440 0010 FFF7FEFF 		bl	OLEDMenu_SetBallPositionCm
+ 441              	.LVL50:
+ 422:application/ball_control.c ****         OLEDMenu_SetBallTargetCm(ball_control.ref_pos_cm);
+ 442              		.loc 1 422 9 view .LVU103
+ 443 0014 A06D     		ldr	r0, [r4, #88]	@ float
+ 444 0016 FFF7FEFF 		bl	OLEDMenu_SetBallTargetCm
+ 445              	.LVL51:
+ 423:application/ball_control.c ****         OLEDMenu_SetBallVelocityCmps(ball_control.ball_vel_cmps);
+ 446              		.loc 1 423 9 view .LVU104
+ 447 001a 206D     		ldr	r0, [r4, #80]	@ float
+ 448 001c FFF7FEFF 		bl	OLEDMenu_SetBallVelocityCmps
+ 449              	.LVL52:
+ 424:application/ball_control.c ****     }
+ 425:application/ball_control.c **** }
+ 450              		.loc 1 425 1 is_stmt 0 view .LVU105
+ 451 0020 10BD     		pop	{r4, pc}
+ 452              	.L41:
+ 453 0022 00BF     		.align	2
+ 454              	.L40:
+ 455 0024 00000000 		.word	ball_control
+ 456              		.cfi_endproc
+ 457              	.LFE77:
+ 459              		.section	.text.PIDReset,"ax",%progbits
+ 460              		.align	1
+ 461              		.global	PIDReset
+ 462              		.syntax unified
+ 463              		.thumb
+ 464              		.thumb_func
+ 466              	PIDReset:
+ 467              	.LVL53:
+ 468              	.LFB67:
+  31:modules/pid.c **** 
+  32:modules/pid.c **** /**
+  33:modules/pid.c ****  * @brief 初始化 PID 实例。
+  34:modules/pid.c ****  *
+  35:modules/pid.c ****  * 保存 PID 参数、输出限幅和积分限幅，并复位内部状态。
+  36:modules/pid.c ****  *
+  37:modules/pid.c ****  * @param pid          PID 实例。
+  38:modules/pid.c ****  * @param kp           比例系数。
+  39:modules/pid.c ****  * @param ki           积分系数。
+  40:modules/pid.c ****  * @param kd           微分系数。
+  41:modules/pid.c ****  * @param dt_s         初始控制周期，单位 s。
+  42:modules/pid.c ****  * @param output_min   输出下限。
+  43:modules/pid.c ****  * @param output_max   输出上限。
+  44:modules/pid.c ****  * @param integral_min 积分项下限。
+  45:modules/pid.c ****  * @param integral_max 积分项上限。
+  46:modules/pid.c ****  */
+  47:modules/pid.c **** void PIDInit(PIDInstance *pid,
+  48:modules/pid.c ****              float kp,
+  49:modules/pid.c ****              float ki,
+  50:modules/pid.c ****              float kd,
+  51:modules/pid.c ****              float dt_s,
+  52:modules/pid.c ****              float output_min,
+  53:modules/pid.c ****              float output_max,
+  54:modules/pid.c ****              float integral_min,
+  55:modules/pid.c ****              float integral_max)
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 18
+
+
+  56:modules/pid.c **** {
+  57:modules/pid.c ****     if (pid == NULL) {
+  58:modules/pid.c ****         return;
+  59:modules/pid.c ****     }
+  60:modules/pid.c **** 
+  61:modules/pid.c ****     pid->kp = kp;
+  62:modules/pid.c ****     pid->ki = ki;
+  63:modules/pid.c ****     pid->kd = kd;
+  64:modules/pid.c ****     pid->dt_s = (dt_s > 0.0f) ? dt_s : 0.05f;
+  65:modules/pid.c ****     pid->output_min = output_min;
+  66:modules/pid.c ****     pid->output_max = output_max;
+  67:modules/pid.c ****     pid->integral_min = integral_min;
+  68:modules/pid.c ****     pid->integral_max = integral_max;
+  69:modules/pid.c ****     PIDReset(pid);
+  70:modules/pid.c **** }
+  71:modules/pid.c **** 
+  72:modules/pid.c **** /**
+  73:modules/pid.c ****  * @brief 复位 PID 的全部内部状态。
+  74:modules/pid.c ****  *
+  75:modules/pid.c ****  * 清零积分项、上一次测量值和初始化标志，保留 PID 参数。
+  76:modules/pid.c ****  *
+  77:modules/pid.c ****  * @param pid PID 实例。
+  78:modules/pid.c ****  */
+  79:modules/pid.c **** void PIDReset(PIDInstance *pid)
+  80:modules/pid.c **** {
+ 469              		.loc 2 80 1 is_stmt 1 view -0
+ 470              		.cfi_startproc
+ 471              		@ args = 0, pretend = 0, frame = 0
+ 472              		@ frame_needed = 0, uses_anonymous_args = 0
+ 473              		@ link register save eliminated.
+  81:modules/pid.c ****     if (pid == NULL) {
+ 474              		.loc 2 81 5 view .LVU107
+ 475              		.loc 2 81 8 is_stmt 0 view .LVU108
+ 476 0000 28B1     		cbz	r0, .L42
+  82:modules/pid.c ****         return;
+  83:modules/pid.c ****     }
+  84:modules/pid.c **** 
+  85:modules/pid.c ****     pid->integral = 0.0f;
+ 477              		.loc 2 85 5 is_stmt 1 view .LVU109
+ 478              		.loc 2 85 19 is_stmt 0 view .LVU110
+ 479 0002 0022     		movs	r2, #0
+ 480 0004 0261     		str	r2, [r0, #16]	@ float
+  86:modules/pid.c ****     pid->prev_measurement = 0.0f;
+ 481              		.loc 2 86 5 is_stmt 1 view .LVU111
+ 482              		.loc 2 86 27 is_stmt 0 view .LVU112
+ 483 0006 4262     		str	r2, [r0, #36]	@ float
+  87:modules/pid.c ****     pid->initialized = 0u;
+ 484              		.loc 2 87 5 is_stmt 1 view .LVU113
+ 485              		.loc 2 87 22 is_stmt 0 view .LVU114
+ 486 0008 0022     		movs	r2, #0
+ 487 000a 80F82820 		strb	r2, [r0, #40]
+ 488              	.L42:
+  88:modules/pid.c **** }
+ 489              		.loc 2 88 1 view .LVU115
+ 490 000e 7047     		bx	lr
+ 491              		.cfi_endproc
+ 492              	.LFE67:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 19
+
+
+ 494              		.section	.text.PIDInit,"ax",%progbits
+ 495              		.align	1
+ 496              		.global	PIDInit
+ 497              		.syntax unified
+ 498              		.thumb
+ 499              		.thumb_func
+ 501              	PIDInit:
+ 502              	.LVL54:
+ 503              	.LFB66:
+  56:modules/pid.c ****     if (pid == NULL) {
+ 504              		.loc 2 56 1 is_stmt 1 view -0
+ 505              		.cfi_startproc
+ 506              		@ args = 20, pretend = 0, frame = 0
+ 507              		@ frame_needed = 0, uses_anonymous_args = 0
+  56:modules/pid.c ****     if (pid == NULL) {
+ 508              		.loc 2 56 1 is_stmt 0 view .LVU117
+ 509 0000 38B5     		push	{r3, r4, r5, lr}
+ 510              	.LCFI7:
+ 511              		.cfi_def_cfa_offset 16
+ 512              		.cfi_offset 3, -16
+ 513              		.cfi_offset 4, -12
+ 514              		.cfi_offset 5, -8
+ 515              		.cfi_offset 14, -4
+ 516 0002 049D     		ldr	r5, [sp, #16]	@ float
+  57:modules/pid.c ****         return;
+ 517              		.loc 2 57 5 is_stmt 1 view .LVU118
+  57:modules/pid.c ****         return;
+ 518              		.loc 2 57 8 is_stmt 0 view .LVU119
+ 519 0004 A0B1     		cbz	r0, .L44
+ 520 0006 0446     		mov	r4, r0
+  61:modules/pid.c ****     pid->ki = ki;
+ 521              		.loc 2 61 5 is_stmt 1 view .LVU120
+  61:modules/pid.c ****     pid->ki = ki;
+ 522              		.loc 2 61 13 is_stmt 0 view .LVU121
+ 523 0008 0160     		str	r1, [r0]	@ float
+  62:modules/pid.c ****     pid->kd = kd;
+ 524              		.loc 2 62 5 is_stmt 1 view .LVU122
+  62:modules/pid.c ****     pid->kd = kd;
+ 525              		.loc 2 62 13 is_stmt 0 view .LVU123
+ 526 000a 4260     		str	r2, [r0, #4]	@ float
+  63:modules/pid.c ****     pid->dt_s = (dt_s > 0.0f) ? dt_s : 0.05f;
+ 527              		.loc 2 63 5 is_stmt 1 view .LVU124
+  63:modules/pid.c ****     pid->dt_s = (dt_s > 0.0f) ? dt_s : 0.05f;
+ 528              		.loc 2 63 13 is_stmt 0 view .LVU125
+ 529 000c 8360     		str	r3, [r0, #8]	@ float
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 530              		.loc 2 64 5 is_stmt 1 view .LVU126
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 531              		.loc 2 64 38 is_stmt 0 view .LVU127
+ 532 000e 0021     		movs	r1, #0
+ 533              	.LVL55:
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 534              		.loc 2 64 38 view .LVU128
+ 535 0010 2846     		mov	r0, r5
+ 536              	.LVL56:
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 537              		.loc 2 64 38 view .LVU129
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 20
+
+
+ 538 0012 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 539              	.LVL57:
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 540              		.loc 2 64 38 view .LVU130
+ 541 0016 60B1     		cbz	r0, .L50
+ 542              	.L46:
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 543              		.loc 2 64 15 discriminator 4 view .LVU131
+ 544 0018 E560     		str	r5, [r4, #12]	@ float
+  65:modules/pid.c ****     pid->output_max = output_max;
+ 545              		.loc 2 65 5 is_stmt 1 view .LVU132
+  65:modules/pid.c ****     pid->output_max = output_max;
+ 546              		.loc 2 65 21 is_stmt 0 view .LVU133
+ 547 001a 059B     		ldr	r3, [sp, #20]	@ float
+ 548 001c E361     		str	r3, [r4, #28]	@ float
+  66:modules/pid.c ****     pid->integral_min = integral_min;
+ 549              		.loc 2 66 5 is_stmt 1 view .LVU134
+  66:modules/pid.c ****     pid->integral_min = integral_min;
+ 550              		.loc 2 66 21 is_stmt 0 view .LVU135
+ 551 001e 069B     		ldr	r3, [sp, #24]	@ float
+ 552 0020 2362     		str	r3, [r4, #32]	@ float
+  67:modules/pid.c ****     pid->integral_max = integral_max;
+ 553              		.loc 2 67 5 is_stmt 1 view .LVU136
+  67:modules/pid.c ****     pid->integral_max = integral_max;
+ 554              		.loc 2 67 23 is_stmt 0 view .LVU137
+ 555 0022 079B     		ldr	r3, [sp, #28]	@ float
+ 556 0024 6361     		str	r3, [r4, #20]	@ float
+  68:modules/pid.c ****     PIDReset(pid);
+ 557              		.loc 2 68 5 is_stmt 1 view .LVU138
+  68:modules/pid.c ****     PIDReset(pid);
+ 558              		.loc 2 68 23 is_stmt 0 view .LVU139
+ 559 0026 089B     		ldr	r3, [sp, #32]	@ float
+ 560 0028 A361     		str	r3, [r4, #24]	@ float
+  69:modules/pid.c **** }
+ 561              		.loc 2 69 5 is_stmt 1 view .LVU140
+ 562 002a 2046     		mov	r0, r4
+ 563 002c FFF7FEFF 		bl	PIDReset
+ 564              	.LVL58:
+ 565              	.L44:
+  70:modules/pid.c **** 
+ 566              		.loc 2 70 1 is_stmt 0 view .LVU141
+ 567 0030 38BD     		pop	{r3, r4, r5, pc}
+ 568              	.LVL59:
+ 569              	.L50:
+  64:modules/pid.c ****     pid->output_min = output_min;
+ 570              		.loc 2 64 38 discriminator 2 view .LVU142
+ 571 0032 014D     		ldr	r5, .L51
+ 572 0034 F0E7     		b	.L46
+ 573              	.L52:
+ 574 0036 00BF     		.align	2
+ 575              	.L51:
+ 576 0038 CDCC4C3D 		.word	1028443341
+ 577              		.cfi_endproc
+ 578              	.LFE66:
+ 580              		.section	.text.BallControl_ResetRuntime,"ax",%progbits
+ 581              		.align	1
+ 582              		.syntax unified
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 21
+
+
+ 583              		.thumb
+ 584              		.thumb_func
+ 586              	BallControl_ResetRuntime:
+ 587              	.LFB70:
+ 124:application/ball_control.c ****     PIDReset(&ball_control.pid);
+ 588              		.loc 1 124 1 is_stmt 1 view -0
+ 589              		.cfi_startproc
+ 590              		@ args = 0, pretend = 0, frame = 0
+ 591              		@ frame_needed = 0, uses_anonymous_args = 0
+ 592 0000 10B5     		push	{r4, lr}
+ 593              	.LCFI8:
+ 594              		.cfi_def_cfa_offset 8
+ 595              		.cfi_offset 4, -8
+ 596              		.cfi_offset 14, -4
+ 125:application/ball_control.c **** 
+ 597              		.loc 1 125 5 view .LVU144
+ 598 0002 114C     		ldr	r4, .L55
+ 599 0004 2046     		mov	r0, r4
+ 600 0006 FFF7FEFF 		bl	PIDReset
+ 601              	.LVL60:
+ 127:application/ball_control.c ****     ball_control.task_elapsed_s = 0.0f;
+ 602              		.loc 1 127 5 view .LVU145
+ 127:application/ball_control.c ****     ball_control.task_elapsed_s = 0.0f;
+ 603              		.loc 1 127 29 is_stmt 0 view .LVU146
+ 604 000a 201F     		subs	r0, r4, #4
+ 605 000c 0022     		movs	r2, #0
+ 606 000e 80F83220 		strb	r2, [r0, #50]
+ 128:application/ball_control.c ****     ball_control.stable_time_s = 0.0f;
+ 607              		.loc 1 128 5 is_stmt 1 view .LVU147
+ 128:application/ball_control.c ****     ball_control.stable_time_s = 0.0f;
+ 608              		.loc 1 128 33 is_stmt 0 view .LVU148
+ 609 0012 0023     		movs	r3, #0
+ 610 0014 4363     		str	r3, [r0, #52]	@ float
+ 129:application/ball_control.c **** 
+ 611              		.loc 1 129 5 is_stmt 1 view .LVU149
+ 129:application/ball_control.c **** 
+ 612              		.loc 1 129 32 is_stmt 0 view .LVU150
+ 613 0016 8363     		str	r3, [r0, #56]	@ float
+ 131:application/ball_control.c ****     ball_control.have_last_frame = 0u;
+ 614              		.loc 1 131 5 is_stmt 1 view .LVU151
+ 131:application/ball_control.c ****     ball_control.have_last_frame = 0u;
+ 615              		.loc 1 131 37 is_stmt 0 view .LVU152
+ 616 0018 80F83C20 		strb	r2, [r0, #60]
+ 132:application/ball_control.c ****     ball_control.vision_was_valid = 0u;
+ 617              		.loc 1 132 5 is_stmt 1 view .LVU153
+ 132:application/ball_control.c ****     ball_control.vision_was_valid = 0u;
+ 618              		.loc 1 132 34 is_stmt 0 view .LVU154
+ 619 001c 80F83D20 		strb	r2, [r0, #61]
+ 133:application/ball_control.c ****     ball_control.fail_safe_applied = 0u;
+ 620              		.loc 1 133 5 is_stmt 1 view .LVU155
+ 133:application/ball_control.c ****     ball_control.fail_safe_applied = 0u;
+ 621              		.loc 1 133 35 is_stmt 0 view .LVU156
+ 622 0020 80F83E20 		strb	r2, [r0, #62]
+ 134:application/ball_control.c ****     ball_control.last_frame_time_ms = 0u;
+ 623              		.loc 1 134 5 is_stmt 1 view .LVU157
+ 134:application/ball_control.c ****     ball_control.last_frame_time_ms = 0u;
+ 624              		.loc 1 134 36 is_stmt 0 view .LVU158
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 22
+
+
+ 625 0024 80F83F20 		strb	r2, [r0, #63]
+ 135:application/ball_control.c ****     ball_control.last_dt_s = 0.05f;
+ 626              		.loc 1 135 5 is_stmt 1 view .LVU159
+ 135:application/ball_control.c ****     ball_control.last_dt_s = 0.05f;
+ 627              		.loc 1 135 37 is_stmt 0 view .LVU160
+ 628 0028 0264     		str	r2, [r0, #64]
+ 136:application/ball_control.c **** 
+ 629              		.loc 1 136 5 is_stmt 1 view .LVU161
+ 136:application/ball_control.c **** 
+ 630              		.loc 1 136 28 is_stmt 0 view .LVU162
+ 631 002a 0849     		ldr	r1, .L55+4
+ 632 002c 4164     		str	r1, [r0, #68]	@ float
+ 138:application/ball_control.c ****     ball_control.last_filtered_pos_cm = 0.0f;
+ 633              		.loc 1 138 5 is_stmt 1 view .LVU163
+ 138:application/ball_control.c ****     ball_control.last_filtered_pos_cm = 0.0f;
+ 634              		.loc 1 138 34 is_stmt 0 view .LVU164
+ 635 002e 8364     		str	r3, [r0, #72]	@ float
+ 139:application/ball_control.c ****     ball_control.ball_vel_cmps = 0.0f;
+ 636              		.loc 1 139 5 is_stmt 1 view .LVU165
+ 139:application/ball_control.c ****     ball_control.ball_vel_cmps = 0.0f;
+ 637              		.loc 1 139 39 is_stmt 0 view .LVU166
+ 638 0030 C364     		str	r3, [r0, #76]	@ float
+ 140:application/ball_control.c **** 
+ 639              		.loc 1 140 5 is_stmt 1 view .LVU167
+ 140:application/ball_control.c **** 
+ 640              		.loc 1 140 32 is_stmt 0 view .LVU168
+ 641 0032 0365     		str	r3, [r0, #80]	@ float
+ 142:application/ball_control.c ****     ball_control.ref_pos_cm = 0.0f;
+ 642              		.loc 1 142 5 is_stmt 1 view .LVU169
+ 142:application/ball_control.c ****     ball_control.ref_pos_cm = 0.0f;
+ 643              		.loc 1 142 28 is_stmt 0 view .LVU170
+ 644 0034 4365     		str	r3, [r0, #84]	@ float
+ 143:application/ball_control.c ****     ball_control.ref_vel_cmps = 0.0f;
+ 645              		.loc 1 143 5 is_stmt 1 view .LVU171
+ 143:application/ball_control.c ****     ball_control.ref_vel_cmps = 0.0f;
+ 646              		.loc 1 143 29 is_stmt 0 view .LVU172
+ 647 0036 8365     		str	r3, [r0, #88]	@ float
+ 144:application/ball_control.c ****     ball_control.ref_acc_cmps2 = 0.0f;
+ 648              		.loc 1 144 5 is_stmt 1 view .LVU173
+ 144:application/ball_control.c ****     ball_control.ref_acc_cmps2 = 0.0f;
+ 649              		.loc 1 144 31 is_stmt 0 view .LVU174
+ 650 0038 C365     		str	r3, [r0, #92]	@ float
+ 145:application/ball_control.c **** 
+ 651              		.loc 1 145 5 is_stmt 1 view .LVU175
+ 145:application/ball_control.c **** 
+ 652              		.loc 1 145 32 is_stmt 0 view .LVU176
+ 653 003a 0366     		str	r3, [r0, #96]	@ float
+ 147:application/ball_control.c ****     ball_control.display_valid = 0u;
+ 654              		.loc 1 147 5 is_stmt 1 view .LVU177
+ 147:application/ball_control.c ****     ball_control.display_valid = 0u;
+ 655              		.loc 1 147 33 is_stmt 0 view .LVU178
+ 656 003c 4366     		str	r3, [r0, #100]	@ float
+ 148:application/ball_control.c ****     ball_control.feedforward_enabled = 0u;
+ 657              		.loc 1 148 5 is_stmt 1 view .LVU179
+ 148:application/ball_control.c ****     ball_control.feedforward_enabled = 0u;
+ 658              		.loc 1 148 32 is_stmt 0 view .LVU180
+ 659 003e 80F86820 		strb	r2, [r0, #104]
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 23
+
+
+ 149:application/ball_control.c **** }
+ 660              		.loc 1 149 5 is_stmt 1 view .LVU181
+ 149:application/ball_control.c **** }
+ 661              		.loc 1 149 38 is_stmt 0 view .LVU182
+ 662 0042 80F86920 		strb	r2, [r0, #105]
+ 150:application/ball_control.c **** 
+ 663              		.loc 1 150 1 view .LVU183
+ 664 0046 10BD     		pop	{r4, pc}
+ 665              	.L56:
+ 666              		.align	2
+ 667              	.L55:
+ 668 0048 04000000 		.word	ball_control+4
+ 669 004c CDCC4C3D 		.word	1028443341
+ 670              		.cfi_endproc
+ 671              	.LFE70:
+ 673              		.section	.text.BallControl_BeginTask,"ax",%progbits
+ 674              		.align	1
+ 675              		.syntax unified
+ 676              		.thumb
+ 677              		.thumb_func
+ 679              	BallControl_BeginTask:
+ 680              	.LVL61:
+ 681              	.LFB71:
+ 163:application/ball_control.c ****     if ((ball_control.task_active == 0u) || (ball_control.active_task != task)) {
+ 682              		.loc 1 163 1 is_stmt 1 view -0
+ 683              		.cfi_startproc
+ 684              		@ args = 0, pretend = 0, frame = 0
+ 685              		@ frame_needed = 0, uses_anonymous_args = 0
+ 163:application/ball_control.c ****     if ((ball_control.task_active == 0u) || (ball_control.active_task != task)) {
+ 686              		.loc 1 163 1 is_stmt 0 view .LVU185
+ 687 0000 10B5     		push	{r4, lr}
+ 688              	.LCFI9:
+ 689              		.cfi_def_cfa_offset 8
+ 690              		.cfi_offset 4, -8
+ 691              		.cfi_offset 14, -4
+ 692 0002 0446     		mov	r4, r0
+ 164:application/ball_control.c ****         ball_control.active_task = task;
+ 693              		.loc 1 164 5 is_stmt 1 view .LVU186
+ 164:application/ball_control.c ****         ball_control.active_task = task;
+ 694              		.loc 1 164 22 is_stmt 0 view .LVU187
+ 695 0004 0C4B     		ldr	r3, .L64
+ 696 0006 93F83130 		ldrb	r3, [r3, #49]	@ zero_extendqisi2
+ 164:application/ball_control.c ****         ball_control.active_task = task;
+ 697              		.loc 1 164 8 view .LVU188
+ 698 000a 23B1     		cbz	r3, .L58
+ 164:application/ball_control.c ****         ball_control.active_task = task;
+ 699              		.loc 1 164 58 discriminator 1 view .LVU189
+ 700 000c 0A4B     		ldr	r3, .L64
+ 701 000e 93F83030 		ldrb	r3, [r3, #48]	@ zero_extendqisi2
+ 164:application/ball_control.c ****         ball_control.active_task = task;
+ 702              		.loc 1 164 42 discriminator 1 view .LVU190
+ 703 0012 8342     		cmp	r3, r0
+ 704 0014 07D0     		beq	.L59
+ 705              	.L58:
+ 165:application/ball_control.c ****         ball_control.task_active = 1u;
+ 706              		.loc 1 165 9 is_stmt 1 view .LVU191
+ 165:application/ball_control.c ****         ball_control.task_active = 1u;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 24
+
+
+ 707              		.loc 1 165 34 is_stmt 0 view .LVU192
+ 708 0016 084B     		ldr	r3, .L64
+ 709 0018 83F83040 		strb	r4, [r3, #48]
+ 166:application/ball_control.c ****         BallControl_ResetRuntime();
+ 710              		.loc 1 166 9 is_stmt 1 view .LVU193
+ 166:application/ball_control.c ****         BallControl_ResetRuntime();
+ 711              		.loc 1 166 34 is_stmt 0 view .LVU194
+ 712 001c 0122     		movs	r2, #1
+ 713 001e 83F83120 		strb	r2, [r3, #49]
+ 167:application/ball_control.c ****     }
+ 714              		.loc 1 167 9 is_stmt 1 view .LVU195
+ 715 0022 FFF7FEFF 		bl	BallControl_ResetRuntime
+ 716              	.LVL62:
+ 717              	.L59:
+ 171:application/ball_control.c ****         (task == MENU_TASK_CONTINUOUS_TRACK) ? 1u : 0u;
+ 718              		.loc 1 171 5 view .LVU196
+ 171:application/ball_control.c ****         (task == MENU_TASK_CONTINUOUS_TRACK) ? 1u : 0u;
+ 719              		.loc 1 171 38 is_stmt 0 view .LVU197
+ 720 0026 022C     		cmp	r4, #2
+ 721 0028 04D0     		beq	.L63
+ 171:application/ball_control.c ****         (task == MENU_TASK_CONTINUOUS_TRACK) ? 1u : 0u;
+ 722              		.loc 1 171 38 discriminator 2 view .LVU198
+ 723 002a 0022     		movs	r2, #0
+ 724              	.L60:
+ 171:application/ball_control.c ****         (task == MENU_TASK_CONTINUOUS_TRACK) ? 1u : 0u;
+ 725              		.loc 1 171 38 discriminator 4 view .LVU199
+ 726 002c 024B     		ldr	r3, .L64
+ 727 002e 83F86920 		strb	r2, [r3, #105]
+ 173:application/ball_control.c **** 
+ 728              		.loc 1 173 1 view .LVU200
+ 729 0032 10BD     		pop	{r4, pc}
+ 730              	.LVL63:
+ 731              	.L63:
+ 171:application/ball_control.c ****         (task == MENU_TASK_CONTINUOUS_TRACK) ? 1u : 0u;
+ 732              		.loc 1 171 38 discriminator 1 view .LVU201
+ 733 0034 0122     		movs	r2, #1
+ 734 0036 F9E7     		b	.L60
+ 735              	.L65:
+ 736              		.align	2
+ 737              	.L64:
+ 738 0038 00000000 		.word	ball_control
+ 739              		.cfi_endproc
+ 740              	.LFE71:
+ 742              		.section	.text.PIDResetIntegral,"ax",%progbits
+ 743              		.align	1
+ 744              		.global	PIDResetIntegral
+ 745              		.syntax unified
+ 746              		.thumb
+ 747              		.thumb_func
+ 749              	PIDResetIntegral:
+ 750              	.LVL64:
+ 751              	.LFB68:
+  89:modules/pid.c **** 
+  90:modules/pid.c **** /**
+  91:modules/pid.c ****  * @brief 只清零 PID 积分项。
+  92:modules/pid.c ****  *
+  93:modules/pid.c ****  * 用于目标切换、视觉失效或防止积分饱和。
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 25
+
+
+  94:modules/pid.c ****  *
+  95:modules/pid.c ****  * @param pid PID 实例。
+  96:modules/pid.c ****  */
+  97:modules/pid.c **** void PIDResetIntegral(PIDInstance *pid)
+  98:modules/pid.c **** {
+ 752              		.loc 2 98 1 is_stmt 1 view -0
+ 753              		.cfi_startproc
+ 754              		@ args = 0, pretend = 0, frame = 0
+ 755              		@ frame_needed = 0, uses_anonymous_args = 0
+ 756              		@ link register save eliminated.
+  99:modules/pid.c ****     if (pid == NULL) {
+ 757              		.loc 2 99 5 view .LVU203
+ 758              		.loc 2 99 8 is_stmt 0 view .LVU204
+ 759 0000 08B1     		cbz	r0, .L66
+ 100:modules/pid.c ****         return;
+ 101:modules/pid.c ****     }
+ 102:modules/pid.c **** 
+ 103:modules/pid.c ****     pid->integral = 0.0f;
+ 760              		.loc 2 103 5 is_stmt 1 view .LVU205
+ 761              		.loc 2 103 19 is_stmt 0 view .LVU206
+ 762 0002 0022     		movs	r2, #0
+ 763 0004 0261     		str	r2, [r0, #16]	@ float
+ 764              	.L66:
+ 104:modules/pid.c **** }
+ 765              		.loc 2 104 1 view .LVU207
+ 766 0006 7047     		bx	lr
+ 767              		.cfi_endproc
+ 768              	.LFE68:
+ 770              		.section	.text.PIDCalculate,"ax",%progbits
+ 771              		.align	1
+ 772              		.global	PIDCalculate
+ 773              		.syntax unified
+ 774              		.thumb
+ 775              		.thumb_func
+ 777              	PIDCalculate:
+ 778              	.LVL65:
+ 779              	.LFB69:
+ 105:modules/pid.c **** 
+ 106:modules/pid.c **** /**
+ 107:modules/pid.c ****  * @brief 计算一次 PID 输出。
+ 108:modules/pid.c ****  *
+ 109:modules/pid.c ****  * 计算流程：
+ 110:modules/pid.c ****  *   1. error = target - measurement；
+ 111:modules/pid.c ****  *   2. 微分作用在测量值上，避免目标突变造成微分冲击；
+ 112:modules/pid.c ****  *   3. 积分项单独限幅；
+ 113:modules/pid.c ****  *   4. 输出限幅；
+ 114:modules/pid.c ****  *   5. 输出饱和时抑制积分继续累加。
+ 115:modules/pid.c ****  *
+ 116:modules/pid.c ****  * @param pid         PID 实例。
+ 117:modules/pid.c ****  * @param target      目标值。
+ 118:modules/pid.c ****  * @param measurement 测量值。
+ 119:modules/pid.c ****  * @return 限幅后的 PID 输出。
+ 120:modules/pid.c ****  */
+ 121:modules/pid.c **** float PIDCalculate(PIDInstance *pid, float target, float measurement)
+ 122:modules/pid.c **** {
+ 780              		.loc 2 122 1 is_stmt 1 view -0
+ 781              		.cfi_startproc
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 26
+
+
+ 782              		@ args = 0, pretend = 0, frame = 8
+ 783              		@ frame_needed = 0, uses_anonymous_args = 0
+ 123:modules/pid.c ****     float error;
+ 784              		.loc 2 123 5 view .LVU209
+ 124:modules/pid.c ****     float derivative;
+ 785              		.loc 2 124 5 view .LVU210
+ 125:modules/pid.c ****     float integral_next;
+ 786              		.loc 2 125 5 view .LVU211
+ 126:modules/pid.c ****     float output;
+ 787              		.loc 2 126 5 view .LVU212
+ 127:modules/pid.c **** 
+ 128:modules/pid.c ****     if (pid == NULL) {
+ 788              		.loc 2 128 5 view .LVU213
+ 789              		.loc 2 128 8 is_stmt 0 view .LVU214
+ 790 0000 0028     		cmp	r0, #0
+ 791 0002 74D0     		beq	.L80
+ 122:modules/pid.c ****     float error;
+ 792              		.loc 2 122 1 view .LVU215
+ 793 0004 2DE9F04F 		push	{r4, r5, r6, r7, r8, r9, r10, fp, lr}
+ 794              	.LCFI10:
+ 795              		.cfi_def_cfa_offset 36
+ 796              		.cfi_offset 4, -36
+ 797              		.cfi_offset 5, -32
+ 798              		.cfi_offset 6, -28
+ 799              		.cfi_offset 7, -24
+ 800              		.cfi_offset 8, -20
+ 801              		.cfi_offset 9, -16
+ 802              		.cfi_offset 10, -12
+ 803              		.cfi_offset 11, -8
+ 804              		.cfi_offset 14, -4
+ 805 0008 83B0     		sub	sp, sp, #12
+ 806              	.LCFI11:
+ 807              		.cfi_def_cfa_offset 48
+ 808 000a 0B46     		mov	r3, r1
+ 809 000c 1646     		mov	r6, r2
+ 810 000e 0446     		mov	r4, r0
+ 129:modules/pid.c ****         return 0.0f;
+ 130:modules/pid.c ****     }
+ 131:modules/pid.c **** 
+ 132:modules/pid.c ****     error = target - measurement;
+ 811              		.loc 2 132 5 is_stmt 1 view .LVU216
+ 812              		.loc 2 132 11 is_stmt 0 view .LVU217
+ 813 0010 1146     		mov	r1, r2
+ 814              	.LVL66:
+ 815              		.loc 2 132 11 view .LVU218
+ 816 0012 1846     		mov	r0, r3
+ 817              	.LVL67:
+ 818              		.loc 2 132 11 view .LVU219
+ 819 0014 FFF7FEFF 		bl	__aeabi_fsub
+ 820              	.LVL68:
+ 821              		.loc 2 132 11 view .LVU220
+ 822 0018 0746     		mov	r7, r0
+ 823              	.LVL69:
+ 133:modules/pid.c **** 
+ 134:modules/pid.c ****     if ((pid->initialized != 0u) && (pid->dt_s > 0.0f)) {
+ 824              		.loc 2 134 5 is_stmt 1 view .LVU221
+ 825              		.loc 2 134 13 is_stmt 0 view .LVU222
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 27
+
+
+ 826 001a 94F82830 		ldrb	r3, [r4, #40]	@ zero_extendqisi2
+ 827              		.loc 2 134 8 view .LVU223
+ 828 001e 83B1     		cbz	r3, .L70
+ 829              		.loc 2 134 41 discriminator 1 view .LVU224
+ 830 0020 E568     		ldr	r5, [r4, #12]	@ float
+ 831              		.loc 2 134 34 discriminator 1 view .LVU225
+ 832 0022 0021     		movs	r1, #0
+ 833 0024 2846     		mov	r0, r5
+ 834              	.LVL70:
+ 835              		.loc 2 134 34 discriminator 1 view .LVU226
+ 836 0026 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 837              	.LVL71:
+ 838 002a 50B1     		cbz	r0, .L70
+ 135:modules/pid.c ****         /* 微分作用在测量值上，避免目标阶跃时产生微分冲击。 */
+ 136:modules/pid.c ****         derivative = -(measurement - pid->prev_measurement) / pid->dt_s;
+ 839              		.loc 2 136 9 is_stmt 1 view .LVU227
+ 840              		.loc 2 136 36 is_stmt 0 view .LVU228
+ 841 002c 616A     		ldr	r1, [r4, #36]	@ float
+ 842 002e 3046     		mov	r0, r6
+ 843 0030 FFF7FEFF 		bl	__aeabi_fsub
+ 844              	.LVL72:
+ 845              		.loc 2 136 22 view .LVU229
+ 846 0034 00F10040 		add	r0, r0, #-2147483648
+ 847              		.loc 2 136 20 view .LVU230
+ 848 0038 2946     		mov	r1, r5
+ 849 003a FFF7FEFF 		bl	__aeabi_fdiv
+ 850              	.LVL73:
+ 851 003e 8146     		mov	r9, r0
+ 852              	.LVL74:
+ 853              		.loc 2 136 20 view .LVU231
+ 854 0040 04E0     		b	.L72
+ 855              	.LVL75:
+ 856              	.L70:
+ 137:modules/pid.c ****     } else {
+ 138:modules/pid.c ****         derivative = 0.0f;
+ 857              		.loc 2 138 9 is_stmt 1 view .LVU232
+ 139:modules/pid.c ****         pid->initialized = 1u;
+ 858              		.loc 2 139 9 view .LVU233
+ 859              		.loc 2 139 26 is_stmt 0 view .LVU234
+ 860 0042 0123     		movs	r3, #1
+ 861 0044 84F82830 		strb	r3, [r4, #40]
+ 138:modules/pid.c ****         pid->initialized = 1u;
+ 862              		.loc 2 138 20 view .LVU235
+ 863 0048 4FF00009 		mov	r9, #0
+ 864              	.LVL76:
+ 865              	.L72:
+ 140:modules/pid.c ****     }
+ 141:modules/pid.c **** 
+ 142:modules/pid.c ****     integral_next = pid->integral + (pid->ki * error * pid->dt_s);
+ 866              		.loc 2 142 5 is_stmt 1 view .LVU236
+ 867              		.loc 2 142 24 is_stmt 0 view .LVU237
+ 868 004c D4F810B0 		ldr	fp, [r4, #16]	@ float
+ 869              		.loc 2 142 46 view .LVU238
+ 870 0050 3946     		mov	r1, r7
+ 871 0052 6068     		ldr	r0, [r4, #4]	@ float
+ 872 0054 FFF7FEFF 		bl	__aeabi_fmul
+ 873              	.LVL77:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 28
+
+
+ 874              		.loc 2 142 54 view .LVU239
+ 875 0058 E168     		ldr	r1, [r4, #12]	@ float
+ 876 005a FFF7FEFF 		bl	__aeabi_fmul
+ 877              	.LVL78:
+ 878 005e 0146     		mov	r1, r0
+ 879              		.loc 2 142 19 view .LVU240
+ 880 0060 5846     		mov	r0, fp
+ 881 0062 FFF7FEFF 		bl	__aeabi_fadd
+ 882              	.LVL79:
+ 143:modules/pid.c ****     integral_next = PIDClampFloat(integral_next, pid->integral_min, pid->integral_max);
+ 883              		.loc 2 143 5 is_stmt 1 view .LVU241
+ 884              		.loc 2 143 21 is_stmt 0 view .LVU242
+ 885 0066 A269     		ldr	r2, [r4, #24]	@ float
+ 886 0068 6169     		ldr	r1, [r4, #20]	@ float
+ 887 006a FFF7FEFF 		bl	PIDClampFloat
+ 888              	.LVL80:
+ 889              		.loc 2 143 21 view .LVU243
+ 890 006e 8046     		mov	r8, r0
+ 891              	.LVL81:
+ 144:modules/pid.c **** 
+ 145:modules/pid.c ****     output = (pid->kp * error) + integral_next + (pid->kd * derivative);
+ 892              		.loc 2 145 5 is_stmt 1 view .LVU244
+ 893              		.loc 2 145 23 is_stmt 0 view .LVU245
+ 894 0070 3946     		mov	r1, r7
+ 895 0072 2068     		ldr	r0, [r4]	@ float
+ 896              	.LVL82:
+ 897              		.loc 2 145 23 view .LVU246
+ 898 0074 FFF7FEFF 		bl	__aeabi_fmul
+ 899              	.LVL83:
+ 900 0078 0190     		str	r0, [sp, #4]	@ float
+ 901              		.loc 2 145 32 view .LVU247
+ 902 007a 4146     		mov	r1, r8
+ 903 007c FFF7FEFF 		bl	__aeabi_fadd
+ 904              	.LVL84:
+ 905 0080 0546     		mov	r5, r0
+ 906              		.loc 2 145 59 view .LVU248
+ 907 0082 4946     		mov	r1, r9
+ 908 0084 A068     		ldr	r0, [r4, #8]	@ float
+ 909 0086 FFF7FEFF 		bl	__aeabi_fmul
+ 910              	.LVL85:
+ 911 008a 8146     		mov	r9, r0
+ 912              	.LVL86:
+ 913              		.loc 2 145 12 view .LVU249
+ 914 008c 0146     		mov	r1, r0
+ 915 008e 2846     		mov	r0, r5
+ 916 0090 FFF7FEFF 		bl	__aeabi_fadd
+ 917              	.LVL87:
+ 918 0094 0546     		mov	r5, r0
+ 919              	.LVL88:
+ 146:modules/pid.c **** 
+ 147:modules/pid.c ****     /* 输出已经饱和且误差仍在把输出往同一方向推时，拒绝本次积分累加�
+ 148:modules/pid.c ****     if (((output > pid->output_max) && (error > 0.0f)) ||
+ 920              		.loc 2 148 5 is_stmt 1 view .LVU250
+ 921              		.loc 2 148 23 is_stmt 0 view .LVU251
+ 922 0096 D4F820A0 		ldr	r10, [r4, #32]	@ float
+ 923              		.loc 2 148 8 view .LVU252
+ 924 009a 0146     		mov	r1, r0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 29
+
+
+ 925 009c 5046     		mov	r0, r10
+ 926              	.LVL89:
+ 927              		.loc 2 148 8 view .LVU253
+ 928 009e FFF7FEFF 		bl	__aeabi_fcmplt
+ 929              	.LVL90:
+ 930              		.loc 2 148 8 view .LVU254
+ 931 00a2 70B1     		cbz	r0, .L73
+ 932              		.loc 2 148 37 discriminator 1 view .LVU255
+ 933 00a4 0021     		movs	r1, #0
+ 934 00a6 3846     		mov	r0, r7
+ 935 00a8 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 936              	.LVL91:
+ 937 00ac 48B1     		cbz	r0, .L73
+ 938              	.L75:
+ 149:modules/pid.c ****         ((output < pid->output_min) && (error < 0.0f))) {
+ 150:modules/pid.c ****         output = (pid->kp * error) + pid->integral + (pid->kd * derivative);
+ 939              		.loc 2 150 9 is_stmt 1 view .LVU256
+ 940              		.loc 2 150 36 is_stmt 0 view .LVU257
+ 941 00ae 0199     		ldr	r1, [sp, #4]	@ float
+ 942 00b0 5846     		mov	r0, fp
+ 943 00b2 FFF7FEFF 		bl	__aeabi_fadd
+ 944              	.LVL92:
+ 945 00b6 0146     		mov	r1, r0
+ 946              		.loc 2 150 16 view .LVU258
+ 947 00b8 4846     		mov	r0, r9
+ 948 00ba FFF7FEFF 		bl	__aeabi_fadd
+ 949              	.LVL93:
+ 950 00be 0546     		mov	r5, r0
+ 951              	.LVL94:
+ 952              		.loc 2 150 16 view .LVU259
+ 953 00c0 0CE0     		b	.L79
+ 954              	.LVL95:
+ 955              	.L73:
+ 148:modules/pid.c ****         ((output < pid->output_min) && (error < 0.0f))) {
+ 956              		.loc 2 148 56 discriminator 3 view .LVU260
+ 957 00c2 2946     		mov	r1, r5
+ 958 00c4 E069     		ldr	r0, [r4, #28]	@ float
+ 959 00c6 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 960              	.LVL96:
+ 961 00ca 28B1     		cbz	r0, .L76
+ 149:modules/pid.c ****         ((output < pid->output_min) && (error < 0.0f))) {
+ 962              		.loc 2 149 37 view .LVU261
+ 963 00cc 0021     		movs	r1, #0
+ 964 00ce 3846     		mov	r0, r7
+ 965 00d0 FFF7FEFF 		bl	__aeabi_fcmplt
+ 966              	.LVL97:
+ 967 00d4 0028     		cmp	r0, #0
+ 968 00d6 EAD1     		bne	.L75
+ 969              	.L76:
+ 151:modules/pid.c ****     } else {
+ 152:modules/pid.c ****         pid->integral = integral_next;
+ 970              		.loc 2 152 9 is_stmt 1 view .LVU262
+ 971              		.loc 2 152 23 is_stmt 0 view .LVU263
+ 972 00d8 C4F81080 		str	r8, [r4, #16]	@ float
+ 973              	.L79:
+ 153:modules/pid.c ****     }
+ 154:modules/pid.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 30
+
+
+ 155:modules/pid.c ****     output = PIDClampFloat(output, pid->output_min, pid->output_max);
+ 974              		.loc 2 155 5 is_stmt 1 view .LVU264
+ 975              		.loc 2 155 14 is_stmt 0 view .LVU265
+ 976 00dc 5246     		mov	r2, r10
+ 977 00de E169     		ldr	r1, [r4, #28]	@ float
+ 978 00e0 2846     		mov	r0, r5
+ 979 00e2 FFF7FEFF 		bl	PIDClampFloat
+ 980              	.LVL98:
+ 156:modules/pid.c ****     pid->prev_measurement = measurement;
+ 981              		.loc 2 156 5 is_stmt 1 view .LVU266
+ 982              		.loc 2 156 27 is_stmt 0 view .LVU267
+ 983 00e6 6662     		str	r6, [r4, #36]	@ float
+ 157:modules/pid.c **** 
+ 158:modules/pid.c ****     return output;
+ 984              		.loc 2 158 5 is_stmt 1 view .LVU268
+ 159:modules/pid.c **** }
+ 985              		.loc 2 159 1 is_stmt 0 view .LVU269
+ 986 00e8 03B0     		add	sp, sp, #12
+ 987              	.LCFI12:
+ 988              		.cfi_def_cfa_offset 36
+ 989              		@ sp needed
+ 990 00ea BDE8F08F 		pop	{r4, r5, r6, r7, r8, r9, r10, fp, pc}
+ 991              	.LVL99:
+ 992              	.L80:
+ 993              	.LCFI13:
+ 994              		.cfi_def_cfa_offset 0
+ 995              		.cfi_restore 4
+ 996              		.cfi_restore 5
+ 997              		.cfi_restore 6
+ 998              		.cfi_restore 7
+ 999              		.cfi_restore 8
+ 1000              		.cfi_restore 9
+ 1001              		.cfi_restore 10
+ 1002              		.cfi_restore 11
+ 1003              		.cfi_restore 14
+ 129:modules/pid.c ****     }
+ 1004              		.loc 2 129 16 view .LVU270
+ 1005 00ee 0020     		movs	r0, #0
+ 1006              	.LVL100:
+ 1007              		.loc 2 159 1 view .LVU271
+ 1008 00f0 7047     		bx	lr
+ 1009              		.cfi_endproc
+ 1010              	.LFE69:
+ 1012              		.section	.text.BallControl_UpdateControlLoop,"ax",%progbits
+ 1013              		.align	1
+ 1014              		.syntax unified
+ 1015              		.thumb
+ 1016              		.thumb_func
+ 1018              	BallControl_UpdateControlLoop:
+ 1019              	.LFB74:
+ 256:application/ball_control.c ****     float error_cm = ball_control.ref_pos_cm - ball_control.filtered_pos_cm;
+ 1020              		.loc 1 256 1 is_stmt 1 view -0
+ 1021              		.cfi_startproc
+ 1022              		@ args = 0, pretend = 0, frame = 0
+ 1023              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1024 0000 70B5     		push	{r4, r5, r6, lr}
+ 1025              	.LCFI14:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 31
+
+
+ 1026              		.cfi_def_cfa_offset 16
+ 1027              		.cfi_offset 4, -16
+ 1028              		.cfi_offset 5, -12
+ 1029              		.cfi_offset 6, -8
+ 1030              		.cfi_offset 14, -4
+ 257:application/ball_control.c ****     float pid_out_deg;
+ 1031              		.loc 1 257 5 view .LVU273
+ 257:application/ball_control.c ****     float pid_out_deg;
+ 1032              		.loc 1 257 34 is_stmt 0 view .LVU274
+ 1033 0002 1D4B     		ldr	r3, .L95
+ 257:application/ball_control.c ****     float pid_out_deg;
+ 1034              		.loc 1 257 11 view .LVU275
+ 1035 0004 996C     		ldr	r1, [r3, #72]	@ float
+ 1036 0006 986D     		ldr	r0, [r3, #88]	@ float
+ 1037 0008 FFF7FEFF 		bl	__aeabi_fsub
+ 1038              	.LVL101:
+ 258:application/ball_control.c ****     float velocity_trim_deg;
+ 1039              		.loc 1 258 5 is_stmt 1 view .LVU276
+ 259:application/ball_control.c ****     float accel_ff_deg;
+ 1040              		.loc 1 259 5 view .LVU277
+ 260:application/ball_control.c ****     float tube_angle_deg;
+ 1041              		.loc 1 260 5 view .LVU278
+ 261:application/ball_control.c **** 
+ 1042              		.loc 1 261 5 view .LVU279
+ 264:application/ball_control.c ****         (fabsf(ball_control.ball_vel_cmps) > BALL_PID_INTEGRAL_VEL_CMPS)) {
+ 1043              		.loc 1 264 5 view .LVU280
+ 264:application/ball_control.c ****         (fabsf(ball_control.ball_vel_cmps) > BALL_PID_INTEGRAL_VEL_CMPS)) {
+ 1044              		.loc 1 264 10 is_stmt 0 view .LVU281
+ 1045 000c 20F00040 		bic	r0, r0, #-2147483648
+ 1046              	.LVL102:
+ 264:application/ball_control.c ****         (fabsf(ball_control.ball_vel_cmps) > BALL_PID_INTEGRAL_VEL_CMPS)) {
+ 1047              		.loc 1 264 8 view .LVU282
+ 1048 0010 4FF08041 		mov	r1, #1073741824
+ 1049 0014 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 1050              	.LVL103:
+ 1051 0018 38B9     		cbnz	r0, .L89
+ 265:application/ball_control.c ****         PIDResetIntegral(&ball_control.pid);
+ 1052              		.loc 1 265 28 view .LVU283
+ 1053 001a 174B     		ldr	r3, .L95
+ 1054 001c 186D     		ldr	r0, [r3, #80]	@ float
+ 265:application/ball_control.c ****         PIDResetIntegral(&ball_control.pid);
+ 1055              		.loc 1 265 10 view .LVU284
+ 1056 001e 20F00040 		bic	r0, r0, #-2147483648
+ 264:application/ball_control.c ****         (fabsf(ball_control.ball_vel_cmps) > BALL_PID_INTEGRAL_VEL_CMPS)) {
+ 1057              		.loc 1 264 55 discriminator 1 view .LVU285
+ 1058 0022 1649     		ldr	r1, .L95+4
+ 1059 0024 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 1060              	.LVL104:
+ 1061 0028 10B1     		cbz	r0, .L90
+ 1062              	.L89:
+ 266:application/ball_control.c ****     }
+ 1063              		.loc 1 266 9 is_stmt 1 view .LVU286
+ 1064 002a 1548     		ldr	r0, .L95+8
+ 1065 002c FFF7FEFF 		bl	PIDResetIntegral
+ 1066              	.LVL105:
+ 1067              	.L90:
+ 269:application/ball_control.c ****     pid_out_deg = PIDCalculate(&ball_control.pid,
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 32
+
+
+ 1068              		.loc 1 269 5 view .LVU287
+ 269:application/ball_control.c ****     pid_out_deg = PIDCalculate(&ball_control.pid,
+ 1069              		.loc 1 269 41 is_stmt 0 view .LVU288
+ 1070 0030 114C     		ldr	r4, .L95
+ 1071 0032 636C     		ldr	r3, [r4, #68]	@ float
+ 269:application/ball_control.c ****     pid_out_deg = PIDCalculate(&ball_control.pid,
+ 1072              		.loc 1 269 27 view .LVU289
+ 1073 0034 2361     		str	r3, [r4, #16]	@ float
+ 270:application/ball_control.c ****                                ball_control.ref_pos_cm,
+ 1074              		.loc 1 270 5 is_stmt 1 view .LVU290
+ 270:application/ball_control.c ****                                ball_control.ref_pos_cm,
+ 1075              		.loc 1 270 19 is_stmt 0 view .LVU291
+ 1076 0036 A26C     		ldr	r2, [r4, #72]	@ float
+ 1077 0038 A16D     		ldr	r1, [r4, #88]	@ float
+ 1078 003a 201D     		adds	r0, r4, #4
+ 1079 003c FFF7FEFF 		bl	PIDCalculate
+ 1080              	.LVL106:
+ 1081 0040 0546     		mov	r5, r0
+ 1082              	.LVL107:
+ 278:application/ball_control.c ****     accel_ff_deg = 0.0f;
+ 1083              		.loc 1 278 5 is_stmt 1 view .LVU292
+ 279:application/ball_control.c ****     if (ball_control.feedforward_enabled != 0u) {
+ 1084              		.loc 1 279 5 view .LVU293
+ 280:application/ball_control.c ****         velocity_trim_deg = BALL_PID_KD * ball_control.ref_vel_cmps;
+ 1085              		.loc 1 280 5 view .LVU294
+ 280:application/ball_control.c ****         velocity_trim_deg = BALL_PID_KD * ball_control.ref_vel_cmps;
+ 1086              		.loc 1 280 21 is_stmt 0 view .LVU295
+ 1087 0042 94F86930 		ldrb	r3, [r4, #105]	@ zero_extendqisi2
+ 280:application/ball_control.c ****         velocity_trim_deg = BALL_PID_KD * ball_control.ref_vel_cmps;
+ 1088              		.loc 1 280 8 view .LVU296
+ 1089 0046 9BB1     		cbz	r3, .L93
+ 281:application/ball_control.c ****         accel_ff_deg = BALL_FF_ACCEL_DEG_PER_CMPS2 * ball_control.ref_acc_cmps2;
+ 1090              		.loc 1 281 9 is_stmt 1 view .LVU297
+ 281:application/ball_control.c ****         accel_ff_deg = BALL_FF_ACCEL_DEG_PER_CMPS2 * ball_control.ref_acc_cmps2;
+ 1091              		.loc 1 281 27 is_stmt 0 view .LVU298
+ 1092 0048 0E49     		ldr	r1, .L95+12
+ 1093 004a E06D     		ldr	r0, [r4, #92]	@ float
+ 1094              	.LVL108:
+ 281:application/ball_control.c ****         accel_ff_deg = BALL_FF_ACCEL_DEG_PER_CMPS2 * ball_control.ref_acc_cmps2;
+ 1095              		.loc 1 281 27 view .LVU299
+ 1096 004c FFF7FEFF 		bl	__aeabi_fmul
+ 1097              	.LVL109:
+ 1098 0050 0646     		mov	r6, r0
+ 1099              	.LVL110:
+ 282:application/ball_control.c ****     }
+ 1100              		.loc 1 282 9 is_stmt 1 view .LVU300
+ 282:application/ball_control.c ****     }
+ 1101              		.loc 1 282 22 is_stmt 0 view .LVU301
+ 1102 0052 0D49     		ldr	r1, .L95+16
+ 1103 0054 206E     		ldr	r0, [r4, #96]	@ float
+ 1104              	.LVL111:
+ 282:application/ball_control.c ****     }
+ 1105              		.loc 1 282 22 view .LVU302
+ 1106 0056 FFF7FEFF 		bl	__aeabi_fmul
+ 1107              	.LVL112:
+ 1108 005a 0446     		mov	r4, r0
+ 1109              	.LVL113:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 33
+
+
+ 1110              	.L92:
+ 285:application/ball_control.c ****     BallControl_ApplyTubeAngle(tube_angle_deg);
+ 1111              		.loc 1 285 5 is_stmt 1 view .LVU303
+ 285:application/ball_control.c ****     BallControl_ApplyTubeAngle(tube_angle_deg);
+ 1112              		.loc 1 285 34 is_stmt 0 view .LVU304
+ 1113 005c 2946     		mov	r1, r5
+ 1114 005e 3046     		mov	r0, r6
+ 1115 0060 FFF7FEFF 		bl	__aeabi_fadd
+ 1116              	.LVL114:
+ 285:application/ball_control.c ****     BallControl_ApplyTubeAngle(tube_angle_deg);
+ 1117              		.loc 1 285 20 view .LVU305
+ 1118 0064 2146     		mov	r1, r4
+ 1119 0066 FFF7FEFF 		bl	__aeabi_fadd
+ 1120              	.LVL115:
+ 286:application/ball_control.c **** }
+ 1121              		.loc 1 286 5 is_stmt 1 view .LVU306
+ 1122 006a FFF7FEFF 		bl	BallControl_ApplyTubeAngle
+ 1123              	.LVL116:
+ 287:application/ball_control.c **** 
+ 1124              		.loc 1 287 1 is_stmt 0 view .LVU307
+ 1125 006e 70BD     		pop	{r4, r5, r6, pc}
+ 1126              	.LVL117:
+ 1127              	.L93:
+ 279:application/ball_control.c ****     if (ball_control.feedforward_enabled != 0u) {
+ 1128              		.loc 1 279 18 view .LVU308
+ 1129 0070 0024     		movs	r4, #0
+ 278:application/ball_control.c ****     accel_ff_deg = 0.0f;
+ 1130              		.loc 1 278 23 view .LVU309
+ 1131 0072 2646     		mov	r6, r4
+ 1132 0074 F2E7     		b	.L92
+ 1133              	.L96:
+ 1134 0076 00BF     		.align	2
+ 1135              	.L95:
+ 1136 0078 00000000 		.word	ball_control
+ 1137 007c 0000A040 		.word	1084227584
+ 1138 0080 04000000 		.word	ball_control+4
+ 1139 0084 CDCC4C3E 		.word	1045220557
+ 1140 0088 9EEFA73D 		.word	1034416030
+ 1141              		.cfi_endproc
+ 1142              	.LFE74:
+ 1144              		.section	.text.BallControl_Update,"ax",%progbits
+ 1145              		.align	1
+ 1146              		.syntax unified
+ 1147              		.thumb
+ 1148              		.thumb_func
+ 1150              	BallControl_Update:
+ 1151              	.LVL118:
+ 1152              	.LFB76:
+ 321:application/ball_control.c ****     K230_Data_s data;
+ 1153              		.loc 1 321 1 is_stmt 1 view -0
+ 1154              		.cfi_startproc
+ 1155              		@ args = 0, pretend = 0, frame = 24
+ 1156              		@ frame_needed = 0, uses_anonymous_args = 0
+ 321:application/ball_control.c ****     K230_Data_s data;
+ 1157              		.loc 1 321 1 is_stmt 0 view .LVU311
+ 1158 0000 2DE9F041 		push	{r4, r5, r6, r7, r8, lr}
+ 1159              	.LCFI15:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 34
+
+
+ 1160              		.cfi_def_cfa_offset 24
+ 1161              		.cfi_offset 4, -24
+ 1162              		.cfi_offset 5, -20
+ 1163              		.cfi_offset 6, -16
+ 1164              		.cfi_offset 7, -12
+ 1165              		.cfi_offset 8, -8
+ 1166              		.cfi_offset 14, -4
+ 1167 0004 86B0     		sub	sp, sp, #24
+ 1168              	.LCFI16:
+ 1169              		.cfi_def_cfa_offset 48
+ 1170 0006 0546     		mov	r5, r0
+ 322:application/ball_control.c ****     float dt_s;
+ 1171              		.loc 1 322 5 is_stmt 1 view .LVU312
+ 323:application/ball_control.c ****     float raw_vel_cmps;
+ 1172              		.loc 1 323 5 view .LVU313
+ 324:application/ball_control.c ****     float ref_phase;
+ 1173              		.loc 1 324 5 view .LVU314
+ 325:application/ball_control.c **** 
+ 1174              		.loc 1 325 5 view .LVU315
+ 327:application/ball_control.c ****         BallControl_ApplyTubeAngle(0.0f);
+ 1175              		.loc 1 327 5 view .LVU316
+ 327:application/ball_control.c ****         BallControl_ApplyTubeAngle(0.0f);
+ 1176              		.loc 1 327 21 is_stmt 0 view .LVU317
+ 1177 0008 6B4B     		ldr	r3, .L121
+ 1178 000a 1868     		ldr	r0, [r3]
+ 1179              	.LVL119:
+ 327:application/ball_control.c ****         BallControl_ApplyTubeAngle(0.0f);
+ 1180              		.loc 1 327 8 view .LVU318
+ 1181 000c 0028     		cmp	r0, #0
+ 1182 000e 30D0     		beq	.L117
+ 332:application/ball_control.c ****         /* 钢球丢失或视觉超时：只执行一次安全动作，禁止沿用旧位置。 */
+ 1183              		.loc 1 332 5 is_stmt 1 view .LVU319
+ 332:application/ball_control.c ****         /* 钢球丢失或视觉超时：只执行一次安全动作，禁止沿用旧位置。 */
+ 1184              		.loc 1 332 9 is_stmt 0 view .LVU320
+ 1185 0010 01A9     		add	r1, sp, #4
+ 1186 0012 FFF7FEFF 		bl	K230ToStm32GetData
+ 1187              	.LVL120:
+ 332:application/ball_control.c ****         /* 钢球丢失或视觉超时：只执行一次安全动作，禁止沿用旧位置。 */
+ 1188              		.loc 1 332 8 discriminator 1 view .LVU321
+ 1189 0016 0446     		mov	r4, r0
+ 1190 0018 0028     		cmp	r0, #0
+ 1191 001a 2FD0     		beq	.L118
+ 343:application/ball_control.c ****         ((data.last_frame_time_ms - ball_control.last_frame_time_ms) > BALL_TASK_RESET_GAP_MS)) {
+ 1192              		.loc 1 343 5 is_stmt 1 view .LVU322
+ 343:application/ball_control.c ****         ((data.last_frame_time_ms - ball_control.last_frame_time_ms) > BALL_TASK_RESET_GAP_MS)) {
+ 1193              		.loc 1 343 22 is_stmt 0 view .LVU323
+ 1194 001c 664B     		ldr	r3, .L121
+ 1195 001e 93F83D30 		ldrb	r3, [r3, #61]	@ zero_extendqisi2
+ 343:application/ball_control.c ****         ((data.last_frame_time_ms - ball_control.last_frame_time_ms) > BALL_TASK_RESET_GAP_MS)) {
+ 1196              		.loc 1 343 8 view .LVU324
+ 1197 0022 2BB1     		cbz	r3, .L102
+ 344:application/ball_control.c ****         /* 任务中间隔太久，按重新进入任务处理。 */
+ 1198              		.loc 1 344 49 view .LVU325
+ 1199 0024 644B     		ldr	r3, .L121
+ 1200 0026 1A6C     		ldr	r2, [r3, #64]
+ 344:application/ball_control.c ****         /* 任务中间隔太久，按重新进入任务处理。 */
+ 1201              		.loc 1 344 35 view .LVU326
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 35
+
+
+ 1202 0028 059B     		ldr	r3, [sp, #20]
+ 1203 002a 9B1A     		subs	r3, r3, r2
+ 343:application/ball_control.c ****         ((data.last_frame_time_ms - ball_control.last_frame_time_ms) > BALL_TASK_RESET_GAP_MS)) {
+ 1204              		.loc 1 343 46 discriminator 1 view .LVU327
+ 1205 002c 642B     		cmp	r3, #100
+ 1206 002e 39D8     		bhi	.L119
+ 1207              	.L102:
+ 349:application/ball_control.c ****         (data.last_frame_time_ms == ball_control.last_frame_time_ms)) {
+ 1208              		.loc 1 349 5 is_stmt 1 view .LVU328
+ 349:application/ball_control.c ****         (data.last_frame_time_ms == ball_control.last_frame_time_ms)) {
+ 1209              		.loc 1 349 22 is_stmt 0 view .LVU329
+ 1210 0030 614B     		ldr	r3, .L121
+ 1211 0032 93F83D30 		ldrb	r3, [r3, #61]	@ zero_extendqisi2
+ 349:application/ball_control.c ****         (data.last_frame_time_ms == ball_control.last_frame_time_ms)) {
+ 1212              		.loc 1 349 8 view .LVU330
+ 1213 0036 2BB1     		cbz	r3, .L103
+ 350:application/ball_control.c ****         return 0u;
+ 1214              		.loc 1 350 49 view .LVU331
+ 1215 0038 5F4A     		ldr	r2, .L121
+ 1216 003a 126C     		ldr	r2, [r2, #64]
+ 349:application/ball_control.c ****         (data.last_frame_time_ms == ball_control.last_frame_time_ms)) {
+ 1217              		.loc 1 349 46 discriminator 1 view .LVU332
+ 1218 003c 0599     		ldr	r1, [sp, #20]
+ 1219 003e 9142     		cmp	r1, r2
+ 1220 0040 00F0B780 		beq	.L110
+ 1221              	.L103:
+ 354:application/ball_control.c ****         dt_s = (float)(data.last_frame_time_ms - ball_control.last_frame_time_ms) * 0.001f;
+ 1222              		.loc 1 354 5 is_stmt 1 view .LVU333
+ 354:application/ball_control.c ****         dt_s = (float)(data.last_frame_time_ms - ball_control.last_frame_time_ms) * 0.001f;
+ 1223              		.loc 1 354 8 is_stmt 0 view .LVU334
+ 1224 0044 8BB3     		cbz	r3, .L111
+ 355:application/ball_control.c ****         if (dt_s < 0.02f) {
+ 1225              		.loc 1 355 9 is_stmt 1 view .LVU335
+ 355:application/ball_control.c ****         if (dt_s < 0.02f) {
+ 1226              		.loc 1 355 62 is_stmt 0 view .LVU336
+ 1227 0046 5C4B     		ldr	r3, .L121
+ 1228 0048 1B6C     		ldr	r3, [r3, #64]
+ 355:application/ball_control.c ****         if (dt_s < 0.02f) {
+ 1229              		.loc 1 355 16 view .LVU337
+ 1230 004a 0598     		ldr	r0, [sp, #20]
+ 1231 004c C01A     		subs	r0, r0, r3
+ 1232 004e FFF7FEFF 		bl	__aeabi_ui2f
+ 1233              	.LVL121:
+ 355:application/ball_control.c ****         if (dt_s < 0.02f) {
+ 1234              		.loc 1 355 14 view .LVU338
+ 1235 0052 5A49     		ldr	r1, .L121+4
+ 1236 0054 FFF7FEFF 		bl	__aeabi_fmul
+ 1237              	.LVL122:
+ 1238 0058 0446     		mov	r4, r0
+ 1239              	.LVL123:
+ 356:application/ball_control.c ****             dt_s = 0.02f;
+ 1240              		.loc 1 356 9 is_stmt 1 view .LVU339
+ 356:application/ball_control.c ****             dt_s = 0.02f;
+ 1241              		.loc 1 356 12 is_stmt 0 view .LVU340
+ 1242 005a 5949     		ldr	r1, .L121+8
+ 1243 005c FFF7FEFF 		bl	__aeabi_fcmplt
+ 1244              	.LVL124:
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 36
+
+
+ 356:application/ball_control.c ****             dt_s = 0.02f;
+ 1245              		.loc 1 356 12 view .LVU341
+ 1246 0060 0028     		cmp	r0, #0
+ 1247 0062 68D1     		bne	.L112
+ 358:application/ball_control.c ****             dt_s = 0.10f;
+ 1248              		.loc 1 358 16 is_stmt 1 view .LVU342
+ 358:application/ball_control.c ****             dt_s = 0.10f;
+ 1249              		.loc 1 358 19 is_stmt 0 view .LVU343
+ 1250 0064 5749     		ldr	r1, .L121+12
+ 1251 0066 2046     		mov	r0, r4
+ 1252 0068 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 1253              	.LVL125:
+ 1254 006c F0B1     		cbz	r0, .L104
+ 359:application/ball_control.c ****         }
+ 1255              		.loc 1 359 18 view .LVU344
+ 1256 006e 554C     		ldr	r4, .L121+12
+ 1257              	.LVL126:
+ 359:application/ball_control.c ****         }
+ 1258              		.loc 1 359 18 view .LVU345
+ 1259 0070 1CE0     		b	.L104
+ 1260              	.LVL127:
+ 1261              	.L117:
+ 328:application/ball_control.c ****         return 0u;
+ 1262              		.loc 1 328 9 is_stmt 1 view .LVU346
+ 1263 0072 0020     		movs	r0, #0
+ 1264 0074 FFF7FEFF 		bl	BallControl_ApplyTubeAngle
+ 1265              	.LVL128:
+ 329:application/ball_control.c ****     }
+ 1266              		.loc 1 329 9 view .LVU347
+ 329:application/ball_control.c ****     }
+ 1267              		.loc 1 329 16 is_stmt 0 view .LVU348
+ 1268 0078 0024     		movs	r4, #0
+ 1269 007a 58E0     		b	.L99
+ 1270              	.L118:
+ 334:application/ball_control.c ****             PIDReset(&ball_control.pid);
+ 1271              		.loc 1 334 9 is_stmt 1 view .LVU349
+ 334:application/ball_control.c ****             PIDReset(&ball_control.pid);
+ 1272              		.loc 1 334 25 is_stmt 0 view .LVU350
+ 1273 007c 4E4B     		ldr	r3, .L121
+ 1274 007e 93F83F30 		ldrb	r3, [r3, #63]	@ zero_extendqisi2
+ 334:application/ball_control.c ****             PIDReset(&ball_control.pid);
+ 1275              		.loc 1 334 12 view .LVU351
+ 1276 0082 23B1     		cbz	r3, .L120
+ 1277              	.LVL129:
+ 1278              	.L101:
+ 339:application/ball_control.c ****         return 0u;
+ 1279              		.loc 1 339 9 is_stmt 1 view .LVU352
+ 339:application/ball_control.c ****         return 0u;
+ 1280              		.loc 1 339 39 is_stmt 0 view .LVU353
+ 1281 0084 4C4B     		ldr	r3, .L121
+ 1282 0086 0022     		movs	r2, #0
+ 1283 0088 83F83E20 		strb	r2, [r3, #62]
+ 340:application/ball_control.c ****     }
+ 1284              		.loc 1 340 9 is_stmt 1 view .LVU354
+ 340:application/ball_control.c ****     }
+ 1285              		.loc 1 340 16 is_stmt 0 view .LVU355
+ 1286 008c 4FE0     		b	.L99
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 37
+
+
+ 1287              	.L120:
+ 335:application/ball_control.c ****             BallControl_ApplyTubeAngle(0.0f);
+ 1288              		.loc 1 335 13 is_stmt 1 view .LVU356
+ 1289 008e 4E4D     		ldr	r5, .L121+16
+ 1290 0090 2846     		mov	r0, r5
+ 1291 0092 FFF7FEFF 		bl	PIDReset
+ 1292              	.LVL130:
+ 336:application/ball_control.c ****             ball_control.fail_safe_applied = 1u;
+ 1293              		.loc 1 336 13 view .LVU357
+ 1294 0096 0020     		movs	r0, #0
+ 1295 0098 FFF7FEFF 		bl	BallControl_ApplyTubeAngle
+ 1296              	.LVL131:
+ 337:application/ball_control.c ****         }
+ 1297              		.loc 1 337 13 view .LVU358
+ 337:application/ball_control.c ****         }
+ 1298              		.loc 1 337 44 is_stmt 0 view .LVU359
+ 1299 009c 0123     		movs	r3, #1
+ 1300 009e 85F83B30 		strb	r3, [r5, #59]
+ 1301 00a2 EFE7     		b	.L101
+ 1302              	.L119:
+ 346:application/ball_control.c ****     }
+ 1303              		.loc 1 346 9 is_stmt 1 view .LVU360
+ 1304 00a4 FFF7FEFF 		bl	BallControl_ResetRuntime
+ 1305              	.LVL132:
+ 1306 00a8 C2E7     		b	.L102
+ 1307              	.L111:
+ 362:application/ball_control.c ****     }
+ 1308              		.loc 1 362 14 is_stmt 0 view .LVU361
+ 1309 00aa 484C     		ldr	r4, .L121+20
+ 1310              	.L104:
+ 1311              	.LVL133:
+ 365:application/ball_control.c ****     ball_control.have_last_frame = 1u;
+ 1312              		.loc 1 365 5 is_stmt 1 view .LVU362
+ 365:application/ball_control.c ****     ball_control.have_last_frame = 1u;
+ 1313              		.loc 1 365 37 is_stmt 0 view .LVU363
+ 1314 00ac 424B     		ldr	r3, .L121
+ 1315 00ae 059A     		ldr	r2, [sp, #20]
+ 1316 00b0 1A64     		str	r2, [r3, #64]
+ 366:application/ball_control.c ****     ball_control.vision_was_valid = 1u;
+ 1317              		.loc 1 366 5 is_stmt 1 view .LVU364
+ 366:application/ball_control.c ****     ball_control.vision_was_valid = 1u;
+ 1318              		.loc 1 366 34 is_stmt 0 view .LVU365
+ 1319 00b2 0122     		movs	r2, #1
+ 1320 00b4 83F83D20 		strb	r2, [r3, #61]
+ 367:application/ball_control.c ****     ball_control.fail_safe_applied = 0u;
+ 1321              		.loc 1 367 5 is_stmt 1 view .LVU366
+ 367:application/ball_control.c ****     ball_control.fail_safe_applied = 0u;
+ 1322              		.loc 1 367 35 is_stmt 0 view .LVU367
+ 1323 00b8 83F83E20 		strb	r2, [r3, #62]
+ 368:application/ball_control.c ****     ball_control.last_dt_s = dt_s;
+ 1324              		.loc 1 368 5 is_stmt 1 view .LVU368
+ 368:application/ball_control.c ****     ball_control.last_dt_s = dt_s;
+ 1325              		.loc 1 368 36 is_stmt 0 view .LVU369
+ 1326 00bc 0022     		movs	r2, #0
+ 1327 00be 83F83F20 		strb	r2, [r3, #63]
+ 369:application/ball_control.c **** 
+ 1328              		.loc 1 369 5 is_stmt 1 view .LVU370
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 38
+
+
+ 369:application/ball_control.c **** 
+ 1329              		.loc 1 369 28 is_stmt 0 view .LVU371
+ 1330 00c2 5C64     		str	r4, [r3, #68]	@ float
+ 371:application/ball_control.c ****         ball_control.filtered_pos_cm = data.pos_cm;
+ 1331              		.loc 1 371 5 is_stmt 1 view .LVU372
+ 371:application/ball_control.c ****         ball_control.filtered_pos_cm = data.pos_cm;
+ 1332              		.loc 1 371 21 is_stmt 0 view .LVU373
+ 1333 00c4 93F83C30 		ldrb	r3, [r3, #60]	@ zero_extendqisi2
+ 371:application/ball_control.c ****         ball_control.filtered_pos_cm = data.pos_cm;
+ 1334              		.loc 1 371 8 view .LVU374
+ 1335 00c8 002B     		cmp	r3, #0
+ 1336 00ca 36D1     		bne	.L105
+ 372:application/ball_control.c ****         ball_control.last_filtered_pos_cm = data.pos_cm;
+ 1337              		.loc 1 372 9 is_stmt 1 view .LVU375
+ 372:application/ball_control.c ****         ball_control.last_filtered_pos_cm = data.pos_cm;
+ 1338              		.loc 1 372 44 is_stmt 0 view .LVU376
+ 1339 00cc 0299     		ldr	r1, [sp, #8]	@ float
+ 372:application/ball_control.c ****         ball_control.last_filtered_pos_cm = data.pos_cm;
+ 1340              		.loc 1 372 38 view .LVU377
+ 1341 00ce 3A4B     		ldr	r3, .L121
+ 1342 00d0 9964     		str	r1, [r3, #72]	@ float
+ 373:application/ball_control.c ****         ball_control.ball_vel_cmps = 0.0f;
+ 1343              		.loc 1 373 9 is_stmt 1 view .LVU378
+ 373:application/ball_control.c ****         ball_control.ball_vel_cmps = 0.0f;
+ 1344              		.loc 1 373 43 is_stmt 0 view .LVU379
+ 1345 00d2 D964     		str	r1, [r3, #76]	@ float
+ 374:application/ball_control.c ****         ball_control.ref_pos_cm = data.pos_cm;
+ 1346              		.loc 1 374 9 is_stmt 1 view .LVU380
+ 374:application/ball_control.c ****         ball_control.ref_pos_cm = data.pos_cm;
+ 1347              		.loc 1 374 36 is_stmt 0 view .LVU381
+ 1348 00d4 0022     		movs	r2, #0
+ 1349 00d6 1A65     		str	r2, [r3, #80]	@ float
+ 375:application/ball_control.c ****         ball_control.ref_vel_cmps = 0.0f;
+ 1350              		.loc 1 375 9 is_stmt 1 view .LVU382
+ 375:application/ball_control.c ****         ball_control.ref_vel_cmps = 0.0f;
+ 1351              		.loc 1 375 33 is_stmt 0 view .LVU383
+ 1352 00d8 9965     		str	r1, [r3, #88]	@ float
+ 376:application/ball_control.c ****         ball_control.ref_acc_cmps2 = 0.0f;
+ 1353              		.loc 1 376 9 is_stmt 1 view .LVU384
+ 376:application/ball_control.c ****         ball_control.ref_acc_cmps2 = 0.0f;
+ 1354              		.loc 1 376 35 is_stmt 0 view .LVU385
+ 1355 00da DA65     		str	r2, [r3, #92]	@ float
+ 377:application/ball_control.c ****         ball_control.filter_initialized = 1u;
+ 1356              		.loc 1 377 9 is_stmt 1 view .LVU386
+ 377:application/ball_control.c ****         ball_control.filter_initialized = 1u;
+ 1357              		.loc 1 377 36 is_stmt 0 view .LVU387
+ 1358 00dc 1A66     		str	r2, [r3, #96]	@ float
+ 378:application/ball_control.c ****     } else {
+ 1359              		.loc 1 378 9 is_stmt 1 view .LVU388
+ 378:application/ball_control.c ****     } else {
+ 1360              		.loc 1 378 41 is_stmt 0 view .LVU389
+ 1361 00de 0122     		movs	r2, #1
+ 1362 00e0 83F83C20 		strb	r2, [r3, #60]
+ 1363              	.L106:
+ 396:application/ball_control.c ****     ball_control.display_valid = 1u;
+ 1364              		.loc 1 396 5 is_stmt 1 view .LVU390
+ 396:application/ball_control.c ****     ball_control.display_valid = 1u;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 39
+
+
+ 1365              		.loc 1 396 47 is_stmt 0 view .LVU391
+ 1366 00e4 344B     		ldr	r3, .L121
+ 1367 00e6 9A6C     		ldr	r2, [r3, #72]	@ float
+ 396:application/ball_control.c ****     ball_control.display_valid = 1u;
+ 1368              		.loc 1 396 33 view .LVU392
+ 1369 00e8 5A66     		str	r2, [r3, #100]	@ float
+ 397:application/ball_control.c **** 
+ 1370              		.loc 1 397 5 is_stmt 1 view .LVU393
+ 397:application/ball_control.c **** 
+ 1371              		.loc 1 397 32 is_stmt 0 view .LVU394
+ 1372 00ea 0122     		movs	r2, #1
+ 1373 00ec 83F86820 		strb	r2, [r3, #104]
+ 399:application/ball_control.c ****         ref_phase = BALL_TRACK_OMEGA_RADPS * ball_control.task_elapsed_s;
+ 1374              		.loc 1 399 5 is_stmt 1 view .LVU395
+ 399:application/ball_control.c ****         ref_phase = BALL_TRACK_OMEGA_RADPS * ball_control.task_elapsed_s;
+ 1375              		.loc 1 399 8 is_stmt 0 view .LVU396
+ 1376 00f0 9542     		cmp	r5, r2
+ 1377 00f2 5AD1     		bne	.L108
+ 400:application/ball_control.c ****         ball_control.ref_pos_cm = BALL_TRACK_AMPLITUDE_CM * sinf(ref_phase);
+ 1378              		.loc 1 400 9 is_stmt 1 view .LVU397
+ 400:application/ball_control.c ****         ball_control.ref_pos_cm = BALL_TRACK_AMPLITUDE_CM * sinf(ref_phase);
+ 1379              		.loc 1 400 58 is_stmt 0 view .LVU398
+ 1380 00f4 1C46     		mov	r4, r3
+ 1381              	.LVL134:
+ 400:application/ball_control.c ****         ball_control.ref_pos_cm = BALL_TRACK_AMPLITUDE_CM * sinf(ref_phase);
+ 1382              		.loc 1 400 19 view .LVU399
+ 1383 00f6 3649     		ldr	r1, .L121+24
+ 1384 00f8 586B     		ldr	r0, [r3, #52]	@ float
+ 1385 00fa FFF7FEFF 		bl	__aeabi_fmul
+ 1386              	.LVL135:
+ 1387 00fe 0646     		mov	r6, r0
+ 1388              	.LVL136:
+ 401:application/ball_control.c ****         ball_control.ref_vel_cmps = BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS * cosf(ref_pha
+ 1389              		.loc 1 401 9 is_stmt 1 view .LVU400
+ 401:application/ball_control.c ****         ball_control.ref_vel_cmps = BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS * cosf(ref_pha
+ 1390              		.loc 1 401 61 is_stmt 0 view .LVU401
+ 1391 0100 FFF7FEFF 		bl	sinf
+ 1392              	.LVL137:
+ 401:application/ball_control.c ****         ball_control.ref_vel_cmps = BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS * cosf(ref_pha
+ 1393              		.loc 1 401 61 view .LVU402
+ 1394 0104 0546     		mov	r5, r0
+ 401:application/ball_control.c ****         ball_control.ref_vel_cmps = BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS * cosf(ref_pha
+ 1395              		.loc 1 401 59 discriminator 1 view .LVU403
+ 1396 0106 4FF08241 		mov	r1, #1090519040
+ 1397 010a FFF7FEFF 		bl	__aeabi_fmul
+ 1398              	.LVL138:
+ 401:application/ball_control.c ****         ball_control.ref_vel_cmps = BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS * cosf(ref_pha
+ 1399              		.loc 1 401 33 discriminator 1 view .LVU404
+ 1400 010e A065     		str	r0, [r4, #88]	@ float
+ 402:application/ball_control.c ****         ball_control.ref_acc_cmps2 = -BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS *
+ 1401              		.loc 1 402 9 is_stmt 1 view .LVU405
+ 402:application/ball_control.c ****         ball_control.ref_acc_cmps2 = -BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS *
+ 1402              		.loc 1 402 88 is_stmt 0 view .LVU406
+ 1403 0110 3046     		mov	r0, r6
+ 1404 0112 FFF7FEFF 		bl	cosf
+ 1405              	.LVL139:
+ 402:application/ball_control.c ****         ball_control.ref_acc_cmps2 = -BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS *
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 40
+
+
+ 1406              		.loc 1 402 86 discriminator 1 view .LVU407
+ 1407 0116 2F49     		ldr	r1, .L121+28
+ 1408 0118 FFF7FEFF 		bl	__aeabi_fmul
+ 1409              	.LVL140:
+ 402:application/ball_control.c ****         ball_control.ref_acc_cmps2 = -BALL_TRACK_AMPLITUDE_CM * BALL_TRACK_OMEGA_RADPS *
+ 1410              		.loc 1 402 35 discriminator 1 view .LVU408
+ 1411 011c E065     		str	r0, [r4, #92]	@ float
+ 403:application/ball_control.c ****                                      BALL_TRACK_OMEGA_RADPS * sinf(ref_phase);
+ 1412              		.loc 1 403 9 is_stmt 1 view .LVU409
+ 404:application/ball_control.c ****     } else {
+ 1413              		.loc 1 404 61 is_stmt 0 discriminator 1 view .LVU410
+ 1414 011e 2E49     		ldr	r1, .L121+32
+ 1415 0120 2846     		mov	r0, r5
+ 1416 0122 FFF7FEFF 		bl	__aeabi_fmul
+ 1417              	.LVL141:
+ 403:application/ball_control.c ****                                      BALL_TRACK_OMEGA_RADPS * sinf(ref_phase);
+ 1418              		.loc 1 403 36 view .LVU411
+ 1419 0126 2066     		str	r0, [r4, #96]	@ float
+ 1420              	.LVL142:
+ 1421              	.L109:
+ 409:application/ball_control.c ****     return 1u;
+ 1422              		.loc 1 409 5 is_stmt 1 view .LVU412
+ 1423 0128 FFF7FEFF 		bl	BallControl_UpdateControlLoop
+ 1424              	.LVL143:
+ 410:application/ball_control.c **** }
+ 1425              		.loc 1 410 5 view .LVU413
+ 410:application/ball_control.c **** }
+ 1426              		.loc 1 410 12 is_stmt 0 view .LVU414
+ 1427 012c 0124     		movs	r4, #1
+ 1428              	.LVL144:
+ 1429              	.L99:
+ 411:application/ball_control.c **** 
+ 1430              		.loc 1 411 1 view .LVU415
+ 1431 012e 2046     		mov	r0, r4
+ 1432 0130 06B0     		add	sp, sp, #24
+ 1433              	.LCFI17:
+ 1434              		.cfi_remember_state
+ 1435              		.cfi_def_cfa_offset 24
+ 1436              		@ sp needed
+ 1437 0132 BDE8F081 		pop	{r4, r5, r6, r7, r8, pc}
+ 1438              	.LVL145:
+ 1439              	.L112:
+ 1440              	.LCFI18:
+ 1441              		.cfi_restore_state
+ 357:application/ball_control.c ****         } else if (dt_s > 0.10f) {
+ 1442              		.loc 1 357 18 view .LVU416
+ 1443 0136 224C     		ldr	r4, .L121+8
+ 1444              	.LVL146:
+ 357:application/ball_control.c ****         } else if (dt_s > 0.10f) {
+ 1445              		.loc 1 357 18 view .LVU417
+ 1446 0138 B8E7     		b	.L104
+ 1447              	.LVL147:
+ 1448              	.L105:
+ 380:application/ball_control.c ****                                         (data.pos_cm - ball_control.filtered_pos_cm);
+ 1449              		.loc 1 380 9 is_stmt 1 view .LVU418
+ 380:application/ball_control.c ****                                         (data.pos_cm - ball_control.filtered_pos_cm);
+ 1450              		.loc 1 380 21 is_stmt 0 view .LVU419
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 41
+
+
+ 1451 013a DFF87C80 		ldr	r8, .L121
+ 1452 013e D8F84860 		ldr	r6, [r8, #72]	@ float
+ 381:application/ball_control.c **** 
+ 1453              		.loc 1 381 54 view .LVU420
+ 1454 0142 3146     		mov	r1, r6
+ 1455 0144 0298     		ldr	r0, [sp, #8]	@ float
+ 1456 0146 FFF7FEFF 		bl	__aeabi_fsub
+ 1457              	.LVL148:
+ 380:application/ball_control.c ****                                         (data.pos_cm - ball_control.filtered_pos_cm);
+ 1458              		.loc 1 380 63 view .LVU421
+ 1459 014a 2449     		ldr	r1, .L121+36
+ 1460 014c FFF7FEFF 		bl	__aeabi_fmul
+ 1461              	.LVL149:
+ 1462 0150 0146     		mov	r1, r0
+ 380:application/ball_control.c ****                                         (data.pos_cm - ball_control.filtered_pos_cm);
+ 1463              		.loc 1 380 38 view .LVU422
+ 1464 0152 3046     		mov	r0, r6
+ 1465 0154 FFF7FEFF 		bl	__aeabi_fadd
+ 1466              	.LVL150:
+ 1467 0158 0746     		mov	r7, r0
+ 1468 015a C8F84800 		str	r0, [r8, #72]	@ float
+ 383:application/ball_control.c ****         ball_control.last_filtered_pos_cm = ball_control.filtered_pos_cm;
+ 1469              		.loc 1 383 9 is_stmt 1 view .LVU423
+ 383:application/ball_control.c ****         ball_control.last_filtered_pos_cm = ball_control.filtered_pos_cm;
+ 1470              		.loc 1 383 54 is_stmt 0 view .LVU424
+ 1471 015e D8F84C10 		ldr	r1, [r8, #76]	@ float
+ 1472 0162 FFF7FEFF 		bl	__aeabi_fsub
+ 1473              	.LVL151:
+ 383:application/ball_control.c ****         ball_control.last_filtered_pos_cm = ball_control.filtered_pos_cm;
+ 1474              		.loc 1 383 22 view .LVU425
+ 1475 0166 2146     		mov	r1, r4
+ 1476 0168 FFF7FEFF 		bl	__aeabi_fdiv
+ 1477              	.LVL152:
+ 1478 016c 0646     		mov	r6, r0
+ 1479              	.LVL153:
+ 384:application/ball_control.c **** 
+ 1480              		.loc 1 384 9 is_stmt 1 view .LVU426
+ 384:application/ball_control.c **** 
+ 1481              		.loc 1 384 43 is_stmt 0 view .LVU427
+ 1482 016e C8F84C70 		str	r7, [r8, #76]	@ float
+ 386:application/ball_control.c ****             raw_vel_cmps = BALL_MAX_VELOCITY_CMPS;
+ 1483              		.loc 1 386 9 is_stmt 1 view .LVU428
+ 386:application/ball_control.c ****             raw_vel_cmps = BALL_MAX_VELOCITY_CMPS;
+ 1484              		.loc 1 386 12 is_stmt 0 view .LVU429
+ 1485 0172 1B49     		ldr	r1, .L121+40
+ 1486 0174 FFF7FEFF 		bl	__aeabi_fcmpgt
+ 1487              	.LVL154:
+ 386:application/ball_control.c ****             raw_vel_cmps = BALL_MAX_VELOCITY_CMPS;
+ 1488              		.loc 1 386 12 view .LVU430
+ 1489 0178 30B9     		cbnz	r0, .L114
+ 388:application/ball_control.c ****             raw_vel_cmps = -BALL_MAX_VELOCITY_CMPS;
+ 1490              		.loc 1 388 16 is_stmt 1 view .LVU431
+ 388:application/ball_control.c ****             raw_vel_cmps = -BALL_MAX_VELOCITY_CMPS;
+ 1491              		.loc 1 388 19 is_stmt 0 view .LVU432
+ 1492 017a 1A49     		ldr	r1, .L121+44
+ 1493 017c 3046     		mov	r0, r6
+ 1494 017e FFF7FEFF 		bl	__aeabi_fcmplt
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 42
+
+
+ 1495              	.LVL155:
+ 1496 0182 10B1     		cbz	r0, .L107
+ 389:application/ball_control.c ****         }
+ 1497              		.loc 1 389 26 view .LVU433
+ 1498 0184 174E     		ldr	r6, .L121+44
+ 1499              	.LVL156:
+ 389:application/ball_control.c ****         }
+ 1500              		.loc 1 389 26 view .LVU434
+ 1501 0186 00E0     		b	.L107
+ 1502              	.LVL157:
+ 1503              	.L114:
+ 387:application/ball_control.c ****         } else if (raw_vel_cmps < -BALL_MAX_VELOCITY_CMPS) {
+ 1504              		.loc 1 387 26 view .LVU435
+ 1505 0188 154E     		ldr	r6, .L121+40
+ 1506              	.LVL158:
+ 1507              	.L107:
+ 392:application/ball_control.c ****                                       (raw_vel_cmps - ball_control.ball_vel_cmps);
+ 1508              		.loc 1 392 9 is_stmt 1 view .LVU436
+ 392:application/ball_control.c ****                                       (raw_vel_cmps - ball_control.ball_vel_cmps);
+ 1509              		.loc 1 392 21 is_stmt 0 view .LVU437
+ 1510 018a 0B4F     		ldr	r7, .L121
+ 1511 018c D7F85080 		ldr	r8, [r7, #80]	@ float
+ 393:application/ball_control.c ****     }
+ 1512              		.loc 1 393 53 view .LVU438
+ 1513 0190 4146     		mov	r1, r8
+ 1514 0192 3046     		mov	r0, r6
+ 1515 0194 FFF7FEFF 		bl	__aeabi_fsub
+ 1516              	.LVL159:
+ 392:application/ball_control.c ****                                       (raw_vel_cmps - ball_control.ball_vel_cmps);
+ 1517              		.loc 1 392 61 view .LVU439
+ 1518 0198 1349     		ldr	r1, .L121+48
+ 1519 019a FFF7FEFF 		bl	__aeabi_fmul
+ 1520              	.LVL160:
+ 1521 019e 0146     		mov	r1, r0
+ 392:application/ball_control.c ****                                       (raw_vel_cmps - ball_control.ball_vel_cmps);
+ 1522              		.loc 1 392 36 view .LVU440
+ 1523 01a0 4046     		mov	r0, r8
+ 1524 01a2 FFF7FEFF 		bl	__aeabi_fadd
+ 1525              	.LVL161:
+ 1526 01a6 3865     		str	r0, [r7, #80]	@ float
+ 1527 01a8 9CE7     		b	.L106
+ 1528              	.LVL162:
+ 1529              	.L108:
+ 406:application/ball_control.c ****     }
+ 1530              		.loc 1 406 9 is_stmt 1 view .LVU441
+ 1531 01aa 2046     		mov	r0, r4
+ 1532 01ac FFF7FEFF 		bl	BallControl_UpdateReferenceRamp
+ 1533              	.LVL163:
+ 1534 01b0 BAE7     		b	.L109
+ 1535              	.LVL164:
+ 1536              	.L110:
+ 351:application/ball_control.c ****     }
+ 1537              		.loc 1 351 16 is_stmt 0 view .LVU442
+ 1538 01b2 0024     		movs	r4, #0
+ 1539 01b4 BBE7     		b	.L99
+ 1540              	.L122:
+ 1541 01b6 00BF     		.align	2
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 43
+
+
+ 1542              	.L121:
+ 1543 01b8 00000000 		.word	ball_control
+ 1544 01bc 6F12833A 		.word	981668463
+ 1545 01c0 0AD7A33C 		.word	1017370378
+ 1546 01c4 CDCCCC3D 		.word	1036831949
+ 1547 01c8 04000000 		.word	ball_control+4
+ 1548 01cc CDCC4C3D 		.word	1028443341
+ 1549 01d0 DB0FC93F 		.word	1070141403
+ 1550 01d4 DB0F4941 		.word	1095307227
+ 1551 01d8 E7E99DC1 		.word	-1046615577
+ 1552 01dc 6666E63E 		.word	1055286886
+ 1553 01e0 00004842 		.word	1112014848
+ 1554 01e4 000048C2 		.word	-1035468800
+ 1555 01e8 9A99993E 		.word	1050253722
+ 1556              		.cfi_endproc
+ 1557              	.LFE76:
+ 1559              		.section	.text.ball_control_task_target_position,"ax",%progbits
+ 1560              		.align	1
+ 1561              		.syntax unified
+ 1562              		.thumb
+ 1563              		.thumb_func
+ 1565              	ball_control_task_target_position:
+ 1566              	.LFB82:
+ 426:application/ball_control.c **** 
+ 427:application/ball_control.c **** /* ============================ 任务函数 ============================ */
+ 428:application/ball_control.c **** 
+ 429:application/ball_control.c **** /**
+ 430:application/ball_control.c ****  * @brief 任务1：定点稳定控制。
+ 431:application/ball_control.c ****  *
+ 432:application/ball_control.c ****  * 流程：
+ 433:application/ball_control.c ****  *   phase 0：移动到 +6cm，稳定 3 秒；
+ 434:application/ball_control.c ****  *   phase 1：移动到 -6cm，稳定 3 秒；
+ 435:application/ball_control.c ****  *   phase 2：保持在 -6cm。
+ 436:application/ball_control.c ****  */
+ 437:application/ball_control.c **** static void ball_control_task_stable_position(void)
+ 438:application/ball_control.c **** {
+ 439:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_STABLE_POSITION);
+ 440:application/ball_control.c **** 
+ 441:application/ball_control.c ****     if (ball_control.task_phase == 0u) {
+ 442:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 443:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 444:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 445:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 446:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 447:application/ball_control.c ****                     ball_control.task_phase = 1u;
+ 448:application/ball_control.c ****                     ball_control.stable_time_s = 0.0f;
+ 449:application/ball_control.c ****                     PIDResetIntegral(&ball_control.pid);
+ 450:application/ball_control.c ****                 }
+ 451:application/ball_control.c ****             } else {
+ 452:application/ball_control.c ****                 ball_control.stable_time_s = 0.0f;
+ 453:application/ball_control.c ****             }
+ 454:application/ball_control.c ****         }
+ 455:application/ball_control.c ****     } else if (ball_control.task_phase == 1u) {
+ 456:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 457:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 458:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 459:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 44
+
+
+ 460:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 461:application/ball_control.c ****                     ball_control.task_phase = 2u;
+ 462:application/ball_control.c ****                     ball_control.stable_time_s = 0.0f;
+ 463:application/ball_control.c ****                     PIDResetIntegral(&ball_control.pid);
+ 464:application/ball_control.c ****                 }
+ 465:application/ball_control.c ****             } else {
+ 466:application/ball_control.c ****                 ball_control.stable_time_s = 0.0f;
+ 467:application/ball_control.c ****             }
+ 468:application/ball_control.c ****         }
+ 469:application/ball_control.c ****     } else {
+ 470:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 471:application/ball_control.c ****         (void)BallControl_Update(BALL_REF_RAMP);
+ 472:application/ball_control.c ****     }
+ 473:application/ball_control.c **** 
+ 474:application/ball_control.c ****     ball_control_update_menu_position();
+ 475:application/ball_control.c **** }
+ 476:application/ball_control.c **** 
+ 477:application/ball_control.c **** /**
+ 478:application/ball_control.c ****  * @brief 任务2：折返运动与时效。
+ 479:application/ball_control.c ****  *
+ 480:application/ball_control.c ****  * 流程：
+ 481:application/ball_control.c ****  *   phase 0：从当前位置移动到 +6cm；
+ 482:application/ball_control.c ****  *   phase 1：折返移动到 -6cm；
+ 483:application/ball_control.c ****  *   phase 2：返回 0cm 并保持。
+ 484:application/ball_control.c ****  */
+ 485:application/ball_control.c **** static void ball_control_task_back_and_forth(void)
+ 486:application/ball_control.c **** {
+ 487:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_BACK_AND_FORTH);
+ 488:application/ball_control.c **** 
+ 489:application/ball_control.c ****     if (ball_control.task_phase == 0u) {
+ 490:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 491:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 492:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm - 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 493:application/ball_control.c ****                 ball_control.task_phase = 1u;
+ 494:application/ball_control.c ****                 PIDResetIntegral(&ball_control.pid);
+ 495:application/ball_control.c ****             }
+ 496:application/ball_control.c ****         }
+ 497:application/ball_control.c ****     } else if (ball_control.task_phase == 1u) {
+ 498:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 499:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 500:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm + 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 501:application/ball_control.c ****                 ball_control.task_phase = 2u;
+ 502:application/ball_control.c ****                 PIDResetIntegral(&ball_control.pid);
+ 503:application/ball_control.c ****             }
+ 504:application/ball_control.c ****         }
+ 505:application/ball_control.c ****     } else {
+ 506:application/ball_control.c ****         ball_control.target_cm = 0.0f;
+ 507:application/ball_control.c ****         (void)BallControl_Update(BALL_REF_RAMP);
+ 508:application/ball_control.c ****     }
+ 509:application/ball_control.c **** 
+ 510:application/ball_control.c ****     ball_control_update_menu_position();
+ 511:application/ball_control.c **** }
+ 512:application/ball_control.c **** 
+ 513:application/ball_control.c **** /**
+ 514:application/ball_control.c ****  * @brief 任务3：连续跟踪运动。
+ 515:application/ball_control.c ****  *
+ 516:application/ball_control.c ****  * 目标位置按周期 4 秒的正弦信号变化，幅值 ±8cm。
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 45
+
+
+ 517:application/ball_control.c ****  * 该任务保留速度和加速度前馈，用于后续单独调试。
+ 518:application/ball_control.c ****  */
+ 519:application/ball_control.c **** static void ball_control_task_continuous_track(void)
+ 520:application/ball_control.c **** {
+ 521:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_CONTINUOUS_TRACK);
+ 522:application/ball_control.c **** 
+ 523:application/ball_control.c ****     if (BallControl_Update(BALL_REF_SINE) != 0u) {
+ 524:application/ball_control.c ****         ball_control.task_elapsed_s += ball_control.last_dt_s;
+ 525:application/ball_control.c ****         if (ball_control.task_elapsed_s >= BALL_TRACK_PERIOD_S) {
+ 526:application/ball_control.c ****             ball_control.task_elapsed_s -= BALL_TRACK_PERIOD_S;
+ 527:application/ball_control.c ****         }
+ 528:application/ball_control.c ****     }
+ 529:application/ball_control.c **** 
+ 530:application/ball_control.c ****     ball_control_update_menu_position();
+ 531:application/ball_control.c **** }
+ 532:application/ball_control.c **** 
+ 533:application/ball_control.c **** /**
+ 534:application/ball_control.c ****  * @brief 任务4：抗干扰能力。
+ 535:application/ball_control.c ****  *
+ 536:application/ball_control.c ****  * 目标保持在 0cm，球被外力推走后由 PID 自动拉回中心。
+ 537:application/ball_control.c ****  */
+ 538:application/ball_control.c **** static void ball_control_task_anti_disturbance(void)
+ 539:application/ball_control.c **** {
+ 540:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_ANTI_DISTURBANCE);
+ 541:application/ball_control.c ****     ball_control.target_cm = 0.0f;
+ 542:application/ball_control.c ****     (void)BallControl_Update(BALL_REF_RAMP);
+ 543:application/ball_control.c ****     ball_control_update_menu_position();
+ 544:application/ball_control.c **** }
+ 545:application/ball_control.c **** 
+ 546:application/ball_control.c **** /**
+ 547:application/ball_control.c ****  * @brief 任务5：指定位置控制。
+ 548:application/ball_control.c ****  *
+ 549:application/ball_control.c ****  * 从 OLED 菜单读取用户设定目标位置，然后使用位置 PID 移动到该位置。
+ 550:application/ball_control.c ****  */
+ 551:application/ball_control.c **** static void ball_control_task_target_position(void)
+ 552:application/ball_control.c **** {
+ 1567              		.loc 1 552 1 is_stmt 1 view -0
+ 1568              		.cfi_startproc
+ 1569              		@ args = 0, pretend = 0, frame = 0
+ 1570              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1571 0000 08B5     		push	{r3, lr}
+ 1572              	.LCFI19:
+ 1573              		.cfi_def_cfa_offset 8
+ 1574              		.cfi_offset 3, -8
+ 1575              		.cfi_offset 14, -4
+ 553:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_TARGET_POSITION);
+ 1576              		.loc 1 553 5 view .LVU444
+ 1577 0002 0420     		movs	r0, #4
+ 1578 0004 FFF7FEFF 		bl	BallControl_BeginTask
+ 1579              	.LVL165:
+ 554:application/ball_control.c ****     ball_control.target_cm = (float)OLEDMenu_GetTargetPositionCm();
+ 1580              		.loc 1 554 5 view .LVU445
+ 1581              		.loc 1 554 37 is_stmt 0 view .LVU446
+ 1582 0008 FFF7FEFF 		bl	OLEDMenu_GetTargetPositionCm
+ 1583              	.LVL166:
+ 1584              		.loc 1 554 30 discriminator 1 view .LVU447
+ 1585 000c FFF7FEFF 		bl	__aeabi_i2f
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 46
+
+
+ 1586              	.LVL167:
+ 1587              		.loc 1 554 28 discriminator 1 view .LVU448
+ 1588 0010 034B     		ldr	r3, .L125
+ 1589 0012 5865     		str	r0, [r3, #84]	@ float
+ 555:application/ball_control.c ****     (void)BallControl_Update(BALL_REF_RAMP);
+ 1590              		.loc 1 555 5 is_stmt 1 view .LVU449
+ 1591              		.loc 1 555 11 is_stmt 0 view .LVU450
+ 1592 0014 0020     		movs	r0, #0
+ 1593 0016 FFF7FEFF 		bl	BallControl_Update
+ 1594              	.LVL168:
+ 556:application/ball_control.c ****     ball_control_update_menu_position();
+ 1595              		.loc 1 556 5 is_stmt 1 view .LVU451
+ 1596 001a FFF7FEFF 		bl	ball_control_update_menu_position
+ 1597              	.LVL169:
+ 557:application/ball_control.c **** }
+ 1598              		.loc 1 557 1 is_stmt 0 view .LVU452
+ 1599 001e 08BD     		pop	{r3, pc}
+ 1600              	.L126:
+ 1601              		.align	2
+ 1602              	.L125:
+ 1603 0020 00000000 		.word	ball_control
+ 1604              		.cfi_endproc
+ 1605              	.LFE82:
+ 1607              		.section	.text.ball_control_task_anti_disturbance,"ax",%progbits
+ 1608              		.align	1
+ 1609              		.syntax unified
+ 1610              		.thumb
+ 1611              		.thumb_func
+ 1613              	ball_control_task_anti_disturbance:
+ 1614              	.LFB81:
+ 539:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_ANTI_DISTURBANCE);
+ 1615              		.loc 1 539 1 is_stmt 1 view -0
+ 1616              		.cfi_startproc
+ 1617              		@ args = 0, pretend = 0, frame = 0
+ 1618              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1619 0000 08B5     		push	{r3, lr}
+ 1620              	.LCFI20:
+ 1621              		.cfi_def_cfa_offset 8
+ 1622              		.cfi_offset 3, -8
+ 1623              		.cfi_offset 14, -4
+ 540:application/ball_control.c ****     ball_control.target_cm = 0.0f;
+ 1624              		.loc 1 540 5 view .LVU454
+ 1625 0002 0320     		movs	r0, #3
+ 1626 0004 FFF7FEFF 		bl	BallControl_BeginTask
+ 1627              	.LVL170:
+ 541:application/ball_control.c ****     (void)BallControl_Update(BALL_REF_RAMP);
+ 1628              		.loc 1 541 5 view .LVU455
+ 541:application/ball_control.c ****     (void)BallControl_Update(BALL_REF_RAMP);
+ 1629              		.loc 1 541 28 is_stmt 0 view .LVU456
+ 1630 0008 044B     		ldr	r3, .L129
+ 1631 000a 0022     		movs	r2, #0
+ 1632 000c 5A65     		str	r2, [r3, #84]	@ float
+ 542:application/ball_control.c ****     ball_control_update_menu_position();
+ 1633              		.loc 1 542 5 is_stmt 1 view .LVU457
+ 542:application/ball_control.c ****     ball_control_update_menu_position();
+ 1634              		.loc 1 542 11 is_stmt 0 view .LVU458
+ 1635 000e 0020     		movs	r0, #0
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 47
+
+
+ 1636 0010 FFF7FEFF 		bl	BallControl_Update
+ 1637              	.LVL171:
+ 543:application/ball_control.c **** }
+ 1638              		.loc 1 543 5 is_stmt 1 view .LVU459
+ 1639 0014 FFF7FEFF 		bl	ball_control_update_menu_position
+ 1640              	.LVL172:
+ 544:application/ball_control.c **** 
+ 1641              		.loc 1 544 1 is_stmt 0 view .LVU460
+ 1642 0018 08BD     		pop	{r3, pc}
+ 1643              	.L130:
+ 1644 001a 00BF     		.align	2
+ 1645              	.L129:
+ 1646 001c 00000000 		.word	ball_control
+ 1647              		.cfi_endproc
+ 1648              	.LFE81:
+ 1650              		.section	.text.ball_control_task_continuous_track,"ax",%progbits
+ 1651              		.align	1
+ 1652              		.syntax unified
+ 1653              		.thumb
+ 1654              		.thumb_func
+ 1656              	ball_control_task_continuous_track:
+ 1657              	.LFB80:
+ 520:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_CONTINUOUS_TRACK);
+ 1658              		.loc 1 520 1 is_stmt 1 view -0
+ 1659              		.cfi_startproc
+ 1660              		@ args = 0, pretend = 0, frame = 0
+ 1661              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1662 0000 38B5     		push	{r3, r4, r5, lr}
+ 1663              	.LCFI21:
+ 1664              		.cfi_def_cfa_offset 16
+ 1665              		.cfi_offset 3, -16
+ 1666              		.cfi_offset 4, -12
+ 1667              		.cfi_offset 5, -8
+ 1668              		.cfi_offset 14, -4
+ 521:application/ball_control.c **** 
+ 1669              		.loc 1 521 5 view .LVU462
+ 1670 0002 0220     		movs	r0, #2
+ 1671 0004 FFF7FEFF 		bl	BallControl_BeginTask
+ 1672              	.LVL173:
+ 523:application/ball_control.c ****         ball_control.task_elapsed_s += ball_control.last_dt_s;
+ 1673              		.loc 1 523 5 view .LVU463
+ 523:application/ball_control.c ****         ball_control.task_elapsed_s += ball_control.last_dt_s;
+ 1674              		.loc 1 523 9 is_stmt 0 view .LVU464
+ 1675 0008 0120     		movs	r0, #1
+ 1676 000a FFF7FEFF 		bl	BallControl_Update
+ 1677              	.LVL174:
+ 523:application/ball_control.c ****         ball_control.task_elapsed_s += ball_control.last_dt_s;
+ 1678              		.loc 1 523 8 discriminator 1 view .LVU465
+ 1679 000e 88B1     		cbz	r0, .L132
+ 524:application/ball_control.c ****         if (ball_control.task_elapsed_s >= BALL_TRACK_PERIOD_S) {
+ 1680              		.loc 1 524 9 is_stmt 1 view .LVU466
+ 524:application/ball_control.c ****         if (ball_control.task_elapsed_s >= BALL_TRACK_PERIOD_S) {
+ 1681              		.loc 1 524 21 is_stmt 0 view .LVU467
+ 1682 0010 0A4D     		ldr	r5, .L136
+ 524:application/ball_control.c ****         if (ball_control.task_elapsed_s >= BALL_TRACK_PERIOD_S) {
+ 1683              		.loc 1 524 37 view .LVU468
+ 1684 0012 696C     		ldr	r1, [r5, #68]	@ float
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 48
+
+
+ 1685 0014 686B     		ldr	r0, [r5, #52]	@ float
+ 1686 0016 FFF7FEFF 		bl	__aeabi_fadd
+ 1687              	.LVL175:
+ 1688 001a 0446     		mov	r4, r0
+ 1689 001c 6863     		str	r0, [r5, #52]	@ float
+ 525:application/ball_control.c ****             ball_control.task_elapsed_s -= BALL_TRACK_PERIOD_S;
+ 1690              		.loc 1 525 9 is_stmt 1 view .LVU469
+ 525:application/ball_control.c ****             ball_control.task_elapsed_s -= BALL_TRACK_PERIOD_S;
+ 1691              		.loc 1 525 12 is_stmt 0 view .LVU470
+ 1692 001e 4FF08141 		mov	r1, #1082130432
+ 1693 0022 FFF7FEFF 		bl	__aeabi_fcmpge
+ 1694              	.LVL176:
+ 1695 0026 28B1     		cbz	r0, .L132
+ 526:application/ball_control.c ****         }
+ 1696              		.loc 1 526 13 is_stmt 1 view .LVU471
+ 526:application/ball_control.c ****         }
+ 1697              		.loc 1 526 41 is_stmt 0 view .LVU472
+ 1698 0028 4FF08141 		mov	r1, #1082130432
+ 1699 002c 2046     		mov	r0, r4
+ 1700 002e FFF7FEFF 		bl	__aeabi_fsub
+ 1701              	.LVL177:
+ 1702 0032 6863     		str	r0, [r5, #52]	@ float
+ 1703              	.L132:
+ 530:application/ball_control.c **** }
+ 1704              		.loc 1 530 5 is_stmt 1 view .LVU473
+ 1705 0034 FFF7FEFF 		bl	ball_control_update_menu_position
+ 1706              	.LVL178:
+ 531:application/ball_control.c **** 
+ 1707              		.loc 1 531 1 is_stmt 0 view .LVU474
+ 1708 0038 38BD     		pop	{r3, r4, r5, pc}
+ 1709              	.L137:
+ 1710 003a 00BF     		.align	2
+ 1711              	.L136:
+ 1712 003c 00000000 		.word	ball_control
+ 1713              		.cfi_endproc
+ 1714              	.LFE80:
+ 1716              		.section	.text.ball_control_task_back_and_forth,"ax",%progbits
+ 1717              		.align	1
+ 1718              		.syntax unified
+ 1719              		.thumb
+ 1720              		.thumb_func
+ 1722              	ball_control_task_back_and_forth:
+ 1723              	.LFB79:
+ 486:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_BACK_AND_FORTH);
+ 1724              		.loc 1 486 1 is_stmt 1 view -0
+ 1725              		.cfi_startproc
+ 1726              		@ args = 0, pretend = 0, frame = 0
+ 1727              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1728 0000 08B5     		push	{r3, lr}
+ 1729              	.LCFI22:
+ 1730              		.cfi_def_cfa_offset 8
+ 1731              		.cfi_offset 3, -8
+ 1732              		.cfi_offset 14, -4
+ 487:application/ball_control.c **** 
+ 1733              		.loc 1 487 5 view .LVU476
+ 1734 0002 0120     		movs	r0, #1
+ 1735 0004 FFF7FEFF 		bl	BallControl_BeginTask
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 49
+
+
+ 1736              	.LVL179:
+ 489:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 1737              		.loc 1 489 5 view .LVU477
+ 489:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 1738              		.loc 1 489 21 is_stmt 0 view .LVU478
+ 1739 0008 244B     		ldr	r3, .L149
+ 1740 000a 93F83230 		ldrb	r3, [r3, #50]	@ zero_extendqisi2
+ 489:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 1741              		.loc 1 489 8 view .LVU479
+ 1742 000e 53B1     		cbz	r3, .L147
+ 497:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 1743              		.loc 1 497 12 is_stmt 1 view .LVU480
+ 497:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 1744              		.loc 1 497 15 is_stmt 0 view .LVU481
+ 1745 0010 012B     		cmp	r3, #1
+ 1746 0012 25D0     		beq	.L148
+ 506:application/ball_control.c ****         (void)BallControl_Update(BALL_REF_RAMP);
+ 1747              		.loc 1 506 9 is_stmt 1 view .LVU482
+ 506:application/ball_control.c ****         (void)BallControl_Update(BALL_REF_RAMP);
+ 1748              		.loc 1 506 32 is_stmt 0 view .LVU483
+ 1749 0014 214B     		ldr	r3, .L149
+ 1750 0016 0022     		movs	r2, #0
+ 1751 0018 5A65     		str	r2, [r3, #84]	@ float
+ 507:application/ball_control.c ****     }
+ 1752              		.loc 1 507 9 is_stmt 1 view .LVU484
+ 507:application/ball_control.c ****     }
+ 1753              		.loc 1 507 15 is_stmt 0 view .LVU485
+ 1754 001a 0020     		movs	r0, #0
+ 1755 001c FFF7FEFF 		bl	BallControl_Update
+ 1756              	.LVL180:
+ 1757              	.L140:
+ 510:application/ball_control.c **** }
+ 1758              		.loc 1 510 5 is_stmt 1 view .LVU486
+ 1759 0020 FFF7FEFF 		bl	ball_control_update_menu_position
+ 1760              	.LVL181:
+ 511:application/ball_control.c **** 
+ 1761              		.loc 1 511 1 is_stmt 0 view .LVU487
+ 1762 0024 08BD     		pop	{r3, pc}
+ 1763              	.L147:
+ 490:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1764              		.loc 1 490 9 is_stmt 1 view .LVU488
+ 490:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1765              		.loc 1 490 32 is_stmt 0 view .LVU489
+ 1766 0026 1D4B     		ldr	r3, .L149
+ 1767 0028 1D4A     		ldr	r2, .L149+4
+ 1768 002a 5A65     		str	r2, [r3, #84]	@ float
+ 491:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm - 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 1769              		.loc 1 491 9 is_stmt 1 view .LVU490
+ 491:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm - 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 1770              		.loc 1 491 13 is_stmt 0 view .LVU491
+ 1771 002c 0020     		movs	r0, #0
+ 1772 002e FFF7FEFF 		bl	BallControl_Update
+ 1773              	.LVL182:
+ 491:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm - 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 1774              		.loc 1 491 12 discriminator 1 view .LVU492
+ 1775 0032 0028     		cmp	r0, #0
+ 1776 0034 F4D0     		beq	.L140
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 50
+
+
+ 492:application/ball_control.c ****                 ball_control.task_phase = 1u;
+ 1777              		.loc 1 492 13 is_stmt 1 view .LVU493
+ 492:application/ball_control.c ****                 ball_control.task_phase = 1u;
+ 1778              		.loc 1 492 52 is_stmt 0 view .LVU494
+ 1779 0036 1A49     		ldr	r1, .L149+4
+ 1780 0038 184B     		ldr	r3, .L149
+ 1781 003a 986C     		ldr	r0, [r3, #72]	@ float
+ 1782 003c FFF7FEFF 		bl	__aeabi_fsub
+ 1783              	.LVL183:
+ 492:application/ball_control.c ****                 ball_control.task_phase = 1u;
+ 1784              		.loc 1 492 17 view .LVU495
+ 1785 0040 20F00040 		bic	r0, r0, #-2147483648
+ 492:application/ball_control.c ****                 ball_control.task_phase = 1u;
+ 1786              		.loc 1 492 16 view .LVU496
+ 1787 0044 4FF07E51 		mov	r1, #1065353216
+ 1788 0048 FFF7FEFF 		bl	__aeabi_fcmple
+ 1789              	.LVL184:
+ 1790 004c 0028     		cmp	r0, #0
+ 1791 004e E7D0     		beq	.L140
+ 493:application/ball_control.c ****                 PIDResetIntegral(&ball_control.pid);
+ 1792              		.loc 1 493 17 is_stmt 1 view .LVU497
+ 493:application/ball_control.c ****                 PIDResetIntegral(&ball_control.pid);
+ 1793              		.loc 1 493 41 is_stmt 0 view .LVU498
+ 1794 0050 1248     		ldr	r0, .L149
+ 1795 0052 0123     		movs	r3, #1
+ 1796 0054 80F83230 		strb	r3, [r0, #50]
+ 494:application/ball_control.c ****             }
+ 1797              		.loc 1 494 17 is_stmt 1 view .LVU499
+ 1798 0058 0430     		adds	r0, r0, #4
+ 1799 005a FFF7FEFF 		bl	PIDResetIntegral
+ 1800              	.LVL185:
+ 1801 005e DFE7     		b	.L140
+ 1802              	.L148:
+ 498:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1803              		.loc 1 498 9 view .LVU500
+ 498:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1804              		.loc 1 498 32 is_stmt 0 view .LVU501
+ 1805 0060 0E4B     		ldr	r3, .L149
+ 1806 0062 104A     		ldr	r2, .L149+8
+ 1807 0064 5A65     		str	r2, [r3, #84]	@ float
+ 499:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm + 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 1808              		.loc 1 499 9 is_stmt 1 view .LVU502
+ 499:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm + 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 1809              		.loc 1 499 13 is_stmt 0 view .LVU503
+ 1810 0066 0020     		movs	r0, #0
+ 1811 0068 FFF7FEFF 		bl	BallControl_Update
+ 1812              	.LVL186:
+ 499:application/ball_control.c ****             if (fabsf(ball_control.filtered_pos_cm + 6.0f) <= BALL_FOLD_ERROR_CM) {
+ 1813              		.loc 1 499 12 discriminator 1 view .LVU504
+ 1814 006c 0028     		cmp	r0, #0
+ 1815 006e D7D0     		beq	.L140
+ 500:application/ball_control.c ****                 ball_control.task_phase = 2u;
+ 1816              		.loc 1 500 13 is_stmt 1 view .LVU505
+ 500:application/ball_control.c ****                 ball_control.task_phase = 2u;
+ 1817              		.loc 1 500 52 is_stmt 0 view .LVU506
+ 1818 0070 0B49     		ldr	r1, .L149+4
+ 1819 0072 0A4B     		ldr	r3, .L149
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 51
+
+
+ 1820 0074 986C     		ldr	r0, [r3, #72]	@ float
+ 1821 0076 FFF7FEFF 		bl	__aeabi_fadd
+ 1822              	.LVL187:
+ 500:application/ball_control.c ****                 ball_control.task_phase = 2u;
+ 1823              		.loc 1 500 17 view .LVU507
+ 1824 007a 20F00040 		bic	r0, r0, #-2147483648
+ 500:application/ball_control.c ****                 ball_control.task_phase = 2u;
+ 1825              		.loc 1 500 16 view .LVU508
+ 1826 007e 4FF07E51 		mov	r1, #1065353216
+ 1827 0082 FFF7FEFF 		bl	__aeabi_fcmple
+ 1828              	.LVL188:
+ 1829 0086 0028     		cmp	r0, #0
+ 1830 0088 CAD0     		beq	.L140
+ 501:application/ball_control.c ****                 PIDResetIntegral(&ball_control.pid);
+ 1831              		.loc 1 501 17 is_stmt 1 view .LVU509
+ 501:application/ball_control.c ****                 PIDResetIntegral(&ball_control.pid);
+ 1832              		.loc 1 501 41 is_stmt 0 view .LVU510
+ 1833 008a 0448     		ldr	r0, .L149
+ 1834 008c 0223     		movs	r3, #2
+ 1835 008e 80F83230 		strb	r3, [r0, #50]
+ 502:application/ball_control.c ****             }
+ 1836              		.loc 1 502 17 is_stmt 1 view .LVU511
+ 1837 0092 0430     		adds	r0, r0, #4
+ 1838 0094 FFF7FEFF 		bl	PIDResetIntegral
+ 1839              	.LVL189:
+ 1840 0098 C2E7     		b	.L140
+ 1841              	.L150:
+ 1842 009a 00BF     		.align	2
+ 1843              	.L149:
+ 1844 009c 00000000 		.word	ball_control
+ 1845 00a0 0000C040 		.word	1086324736
+ 1846 00a4 0000C0C0 		.word	-1061158912
+ 1847              		.cfi_endproc
+ 1848              	.LFE79:
+ 1850              		.section	.text.ball_control_task_stable_position,"ax",%progbits
+ 1851              		.align	1
+ 1852              		.syntax unified
+ 1853              		.thumb
+ 1854              		.thumb_func
+ 1856              	ball_control_task_stable_position:
+ 1857              	.LFB78:
+ 438:application/ball_control.c ****     BallControl_BeginTask(MENU_TASK_STABLE_POSITION);
+ 1858              		.loc 1 438 1 view -0
+ 1859              		.cfi_startproc
+ 1860              		@ args = 0, pretend = 0, frame = 0
+ 1861              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1862 0000 10B5     		push	{r4, lr}
+ 1863              	.LCFI23:
+ 1864              		.cfi_def_cfa_offset 8
+ 1865              		.cfi_offset 4, -8
+ 1866              		.cfi_offset 14, -4
+ 439:application/ball_control.c **** 
+ 1867              		.loc 1 439 5 view .LVU513
+ 1868 0002 0020     		movs	r0, #0
+ 1869 0004 FFF7FEFF 		bl	BallControl_BeginTask
+ 1870              	.LVL190:
+ 441:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 52
+
+
+ 1871              		.loc 1 441 5 view .LVU514
+ 441:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 1872              		.loc 1 441 21 is_stmt 0 view .LVU515
+ 1873 0008 2C4B     		ldr	r3, .L164
+ 1874 000a 93F83230 		ldrb	r3, [r3, #50]	@ zero_extendqisi2
+ 441:application/ball_control.c ****         ball_control.target_cm = 6.0f;
+ 1875              		.loc 1 441 8 view .LVU516
+ 1876 000e 53B1     		cbz	r3, .L162
+ 455:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 1877              		.loc 1 455 12 is_stmt 1 view .LVU517
+ 455:application/ball_control.c ****         ball_control.target_cm = -6.0f;
+ 1878              		.loc 1 455 15 is_stmt 0 view .LVU518
+ 1879 0010 012B     		cmp	r3, #1
+ 1880 0012 2DD0     		beq	.L163
+ 470:application/ball_control.c ****         (void)BallControl_Update(BALL_REF_RAMP);
+ 1881              		.loc 1 470 9 is_stmt 1 view .LVU519
+ 470:application/ball_control.c ****         (void)BallControl_Update(BALL_REF_RAMP);
+ 1882              		.loc 1 470 32 is_stmt 0 view .LVU520
+ 1883 0014 294B     		ldr	r3, .L164
+ 1884 0016 2A4A     		ldr	r2, .L164+4
+ 1885 0018 5A65     		str	r2, [r3, #84]	@ float
+ 471:application/ball_control.c ****     }
+ 1886              		.loc 1 471 9 is_stmt 1 view .LVU521
+ 471:application/ball_control.c ****     }
+ 1887              		.loc 1 471 15 is_stmt 0 view .LVU522
+ 1888 001a 0020     		movs	r0, #0
+ 1889 001c FFF7FEFF 		bl	BallControl_Update
+ 1890              	.LVL191:
+ 1891              	.L153:
+ 474:application/ball_control.c **** }
+ 1892              		.loc 1 474 5 is_stmt 1 view .LVU523
+ 1893 0020 FFF7FEFF 		bl	ball_control_update_menu_position
+ 1894              	.LVL192:
+ 475:application/ball_control.c **** 
+ 1895              		.loc 1 475 1 is_stmt 0 view .LVU524
+ 1896 0024 10BD     		pop	{r4, pc}
+ 1897              	.L162:
+ 442:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1898              		.loc 1 442 9 is_stmt 1 view .LVU525
+ 442:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1899              		.loc 1 442 32 is_stmt 0 view .LVU526
+ 1900 0026 254B     		ldr	r3, .L164
+ 1901 0028 264A     		ldr	r2, .L164+8
+ 1902 002a 5A65     		str	r2, [r3, #84]	@ float
+ 443:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 1903              		.loc 1 443 9 is_stmt 1 view .LVU527
+ 443:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 1904              		.loc 1 443 13 is_stmt 0 view .LVU528
+ 1905 002c 0020     		movs	r0, #0
+ 1906 002e FFF7FEFF 		bl	BallControl_Update
+ 1907              	.LVL193:
+ 443:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 1908              		.loc 1 443 12 discriminator 1 view .LVU529
+ 1909 0032 0028     		cmp	r0, #0
+ 1910 0034 F4D0     		beq	.L153
+ 444:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 1911              		.loc 1 444 13 is_stmt 1 view .LVU530
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 53
+
+
+ 444:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 1912              		.loc 1 444 17 is_stmt 0 view .LVU531
+ 1913 0036 2448     		ldr	r0, .L164+12
+ 1914 0038 FFF7FEFF 		bl	BallControl_IsStable
+ 1915              	.LVL194:
+ 444:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 1916              		.loc 1 444 16 discriminator 1 view .LVU532
+ 1917 003c A0B1     		cbz	r0, .L154
+ 445:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 1918              		.loc 1 445 17 is_stmt 1 view .LVU533
+ 445:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 1919              		.loc 1 445 29 is_stmt 0 view .LVU534
+ 1920 003e 1F4C     		ldr	r4, .L164
+ 445:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 1921              		.loc 1 445 44 view .LVU535
+ 1922 0040 616C     		ldr	r1, [r4, #68]	@ float
+ 1923 0042 A06B     		ldr	r0, [r4, #56]	@ float
+ 1924 0044 FFF7FEFF 		bl	__aeabi_fadd
+ 1925              	.LVL195:
+ 1926 0048 A063     		str	r0, [r4, #56]	@ float
+ 446:application/ball_control.c ****                     ball_control.task_phase = 1u;
+ 1927              		.loc 1 446 17 is_stmt 1 view .LVU536
+ 446:application/ball_control.c ****                     ball_control.task_phase = 1u;
+ 1928              		.loc 1 446 20 is_stmt 0 view .LVU537
+ 1929 004a 2049     		ldr	r1, .L164+16
+ 1930 004c FFF7FEFF 		bl	__aeabi_fcmpge
+ 1931              	.LVL196:
+ 1932 0050 0028     		cmp	r0, #0
+ 1933 0052 E5D0     		beq	.L153
+ 447:application/ball_control.c ****                     ball_control.stable_time_s = 0.0f;
+ 1934              		.loc 1 447 21 is_stmt 1 view .LVU538
+ 447:application/ball_control.c ****                     ball_control.stable_time_s = 0.0f;
+ 1935              		.loc 1 447 45 is_stmt 0 view .LVU539
+ 1936 0054 2046     		mov	r0, r4
+ 1937 0056 0123     		movs	r3, #1
+ 1938 0058 84F83230 		strb	r3, [r4, #50]
+ 448:application/ball_control.c ****                     PIDResetIntegral(&ball_control.pid);
+ 1939              		.loc 1 448 21 is_stmt 1 view .LVU540
+ 448:application/ball_control.c ****                     PIDResetIntegral(&ball_control.pid);
+ 1940              		.loc 1 448 48 is_stmt 0 view .LVU541
+ 1941 005c 0023     		movs	r3, #0
+ 1942 005e A363     		str	r3, [r4, #56]	@ float
+ 449:application/ball_control.c ****                 }
+ 1943              		.loc 1 449 21 is_stmt 1 view .LVU542
+ 1944 0060 0430     		adds	r0, r0, #4
+ 1945 0062 FFF7FEFF 		bl	PIDResetIntegral
+ 1946              	.LVL197:
+ 1947 0066 DBE7     		b	.L153
+ 1948              	.L154:
+ 452:application/ball_control.c ****             }
+ 1949              		.loc 1 452 17 view .LVU543
+ 452:application/ball_control.c ****             }
+ 1950              		.loc 1 452 44 is_stmt 0 view .LVU544
+ 1951 0068 144B     		ldr	r3, .L164
+ 1952 006a 0022     		movs	r2, #0
+ 1953 006c 9A63     		str	r2, [r3, #56]	@ float
+ 1954 006e D7E7     		b	.L153
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 54
+
+
+ 1955              	.L163:
+ 456:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1956              		.loc 1 456 9 is_stmt 1 view .LVU545
+ 456:application/ball_control.c ****         if (BallControl_Update(BALL_REF_RAMP) != 0u) {
+ 1957              		.loc 1 456 32 is_stmt 0 view .LVU546
+ 1958 0070 124B     		ldr	r3, .L164
+ 1959 0072 134A     		ldr	r2, .L164+4
+ 1960 0074 5A65     		str	r2, [r3, #84]	@ float
+ 457:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 1961              		.loc 1 457 9 is_stmt 1 view .LVU547
+ 457:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 1962              		.loc 1 457 13 is_stmt 0 view .LVU548
+ 1963 0076 0020     		movs	r0, #0
+ 1964 0078 FFF7FEFF 		bl	BallControl_Update
+ 1965              	.LVL198:
+ 457:application/ball_control.c ****             if (BallControl_IsStable(BALL_STABLE_ERROR_CM) != 0u) {
+ 1966              		.loc 1 457 12 discriminator 1 view .LVU549
+ 1967 007c 0028     		cmp	r0, #0
+ 1968 007e CFD0     		beq	.L153
+ 458:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 1969              		.loc 1 458 13 is_stmt 1 view .LVU550
+ 458:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 1970              		.loc 1 458 17 is_stmt 0 view .LVU551
+ 1971 0080 1148     		ldr	r0, .L164+12
+ 1972 0082 FFF7FEFF 		bl	BallControl_IsStable
+ 1973              	.LVL199:
+ 458:application/ball_control.c ****                 ball_control.stable_time_s += ball_control.last_dt_s;
+ 1974              		.loc 1 458 16 discriminator 1 view .LVU552
+ 1975 0086 A0B1     		cbz	r0, .L157
+ 459:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 1976              		.loc 1 459 17 is_stmt 1 view .LVU553
+ 459:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 1977              		.loc 1 459 29 is_stmt 0 view .LVU554
+ 1978 0088 0C4C     		ldr	r4, .L164
+ 459:application/ball_control.c ****                 if (ball_control.stable_time_s >= BALL_STABLE_TIME_S) {
+ 1979              		.loc 1 459 44 view .LVU555
+ 1980 008a 616C     		ldr	r1, [r4, #68]	@ float
+ 1981 008c A06B     		ldr	r0, [r4, #56]	@ float
+ 1982 008e FFF7FEFF 		bl	__aeabi_fadd
+ 1983              	.LVL200:
+ 1984 0092 A063     		str	r0, [r4, #56]	@ float
+ 460:application/ball_control.c ****                     ball_control.task_phase = 2u;
+ 1985              		.loc 1 460 17 is_stmt 1 view .LVU556
+ 460:application/ball_control.c ****                     ball_control.task_phase = 2u;
+ 1986              		.loc 1 460 20 is_stmt 0 view .LVU557
+ 1987 0094 0D49     		ldr	r1, .L164+16
+ 1988 0096 FFF7FEFF 		bl	__aeabi_fcmpge
+ 1989              	.LVL201:
+ 1990 009a 0028     		cmp	r0, #0
+ 1991 009c C0D0     		beq	.L153
+ 461:application/ball_control.c ****                     ball_control.stable_time_s = 0.0f;
+ 1992              		.loc 1 461 21 is_stmt 1 view .LVU558
+ 461:application/ball_control.c ****                     ball_control.stable_time_s = 0.0f;
+ 1993              		.loc 1 461 45 is_stmt 0 view .LVU559
+ 1994 009e 2046     		mov	r0, r4
+ 1995 00a0 0223     		movs	r3, #2
+ 1996 00a2 84F83230 		strb	r3, [r4, #50]
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 55
+
+
+ 462:application/ball_control.c ****                     PIDResetIntegral(&ball_control.pid);
+ 1997              		.loc 1 462 21 is_stmt 1 view .LVU560
+ 462:application/ball_control.c ****                     PIDResetIntegral(&ball_control.pid);
+ 1998              		.loc 1 462 48 is_stmt 0 view .LVU561
+ 1999 00a6 0023     		movs	r3, #0
+ 2000 00a8 A363     		str	r3, [r4, #56]	@ float
+ 463:application/ball_control.c ****                 }
+ 2001              		.loc 1 463 21 is_stmt 1 view .LVU562
+ 2002 00aa 0430     		adds	r0, r0, #4
+ 2003 00ac FFF7FEFF 		bl	PIDResetIntegral
+ 2004              	.LVL202:
+ 2005 00b0 B6E7     		b	.L153
+ 2006              	.L157:
+ 466:application/ball_control.c ****             }
+ 2007              		.loc 1 466 17 view .LVU563
+ 466:application/ball_control.c ****             }
+ 2008              		.loc 1 466 44 is_stmt 0 view .LVU564
+ 2009 00b2 024B     		ldr	r3, .L164
+ 2010 00b4 0022     		movs	r2, #0
+ 2011 00b6 9A63     		str	r2, [r3, #56]	@ float
+ 2012 00b8 B2E7     		b	.L153
+ 2013              	.L165:
+ 2014 00ba 00BF     		.align	2
+ 2015              	.L164:
+ 2016 00bc 00000000 		.word	ball_control
+ 2017 00c0 0000C0C0 		.word	-1061158912
+ 2018 00c4 0000C040 		.word	1086324736
+ 2019 00c8 CDCC4C3F 		.word	1061997773
+ 2020 00cc 00004040 		.word	1077936128
+ 2021              		.cfi_endproc
+ 2022              	.LFE78:
+ 2024              		.section	.text.BallControlInit,"ax",%progbits
+ 2025              		.align	1
+ 2026              		.global	BallControlInit
+ 2027              		.syntax unified
+ 2028              		.thumb
+ 2029              		.thumb_func
+ 2031              	BallControlInit:
+ 2032              	.LVL203:
+ 2033              	.LFB83:
+ 558:application/ball_control.c **** 
+ 559:application/ball_control.c **** /* ============================ 外部接口 ============================ */
+ 560:application/ball_control.c **** 
+ 561:application/ball_control.c **** /**
+ 562:application/ball_control.c ****  * @brief 初始化钢球控制模块。
+ 563:application/ball_control.c ****  *
+ 564:application/ball_control.c ****  * 保存 K230 实例、初始化 PID，并把 5 个任务函数注册给 OLED 菜单。
+ 565:application/ball_control.c ****  *
+ 566:application/ball_control.c ****  * @param k230_instance K230 视觉模块实例；为 NULL 时控制任务会进入安全失效状�
+ 567:application/ball_control.c ****  */
+ 568:application/ball_control.c **** void BallControlInit(K230ToStm32Instance *k230_instance)
+ 569:application/ball_control.c **** {
+ 2034              		.loc 1 569 1 is_stmt 1 view -0
+ 2035              		.cfi_startproc
+ 2036              		@ args = 0, pretend = 0, frame = 0
+ 2037              		@ frame_needed = 0, uses_anonymous_args = 0
+ 2038              		.loc 1 569 1 is_stmt 0 view .LVU566
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 56
+
+
+ 2039 0000 30B5     		push	{r4, r5, lr}
+ 2040              	.LCFI24:
+ 2041              		.cfi_def_cfa_offset 12
+ 2042              		.cfi_offset 4, -12
+ 2043              		.cfi_offset 5, -8
+ 2044              		.cfi_offset 14, -4
+ 2045 0002 87B0     		sub	sp, sp, #28
+ 2046              	.LCFI25:
+ 2047              		.cfi_def_cfa_offset 40
+ 570:application/ball_control.c ****     ball_control.k230_instance = k230_instance;
+ 2048              		.loc 1 570 5 is_stmt 1 view .LVU567
+ 2049              		.loc 1 570 32 is_stmt 0 view .LVU568
+ 2050 0004 174C     		ldr	r4, .L168
+ 2051 0006 2060     		str	r0, [r4]
+ 571:application/ball_control.c ****     ball_control.active_task = MENU_TASK_STABLE_POSITION;
+ 2052              		.loc 1 571 5 is_stmt 1 view .LVU569
+ 2053              		.loc 1 571 30 is_stmt 0 view .LVU570
+ 2054 0008 0025     		movs	r5, #0
+ 2055 000a 84F83050 		strb	r5, [r4, #48]
+ 572:application/ball_control.c ****     ball_control.task_active = 0u;
+ 2056              		.loc 1 572 5 is_stmt 1 view .LVU571
+ 2057              		.loc 1 572 30 is_stmt 0 view .LVU572
+ 2058 000e 84F83150 		strb	r5, [r4, #49]
+ 573:application/ball_control.c **** 
+ 574:application/ball_control.c ****     PIDInit(&ball_control.pid,
+ 2059              		.loc 1 574 5 is_stmt 1 view .LVU573
+ 2060 0012 0022     		movs	r2, #0
+ 2061 0014 0492     		str	r2, [sp, #16]	@ float
+ 2062 0016 4FF00043 		mov	r3, #-2147483648
+ 2063 001a 0393     		str	r3, [sp, #12]	@ float
+ 2064 001c 124B     		ldr	r3, .L168+4
+ 2065 001e 0293     		str	r3, [sp, #8]	@ float
+ 2066 0020 124B     		ldr	r3, .L168+8
+ 2067 0022 0193     		str	r3, [sp, #4]	@ float
+ 2068 0024 124B     		ldr	r3, .L168+12
+ 2069 0026 0093     		str	r3, [sp]	@ float
+ 2070 0028 124B     		ldr	r3, .L168+16
+ 2071 002a 1349     		ldr	r1, .L168+20
+ 2072 002c 201D     		adds	r0, r4, #4
+ 2073              	.LVL204:
+ 2074              		.loc 1 574 5 is_stmt 0 view .LVU574
+ 2075 002e FFF7FEFF 		bl	PIDInit
+ 2076              	.LVL205:
+ 575:application/ball_control.c ****             BALL_PID_KP,
+ 576:application/ball_control.c ****             BALL_PID_KI,
+ 577:application/ball_control.c ****             BALL_PID_KD,
+ 578:application/ball_control.c ****             0.05f,
+ 579:application/ball_control.c ****             -BALL_PID_OUT_LIMIT_DEG,
+ 580:application/ball_control.c ****             BALL_PID_OUT_LIMIT_DEG,
+ 581:application/ball_control.c ****             -BALL_PID_INTEGRAL_LIMIT_DEG,
+ 582:application/ball_control.c ****             BALL_PID_INTEGRAL_LIMIT_DEG);
+ 583:application/ball_control.c **** 
+ 584:application/ball_control.c ****     BallControl_ResetRuntime();
+ 2077              		.loc 1 584 5 is_stmt 1 view .LVU575
+ 2078 0032 FFF7FEFF 		bl	BallControl_ResetRuntime
+ 2079              	.LVL206:
+ 585:application/ball_control.c **** 
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 57
+
+
+ 586:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_STABLE_POSITION, ball_control_task_stable_position);
+ 2080              		.loc 1 586 5 view .LVU576
+ 2081 0036 1149     		ldr	r1, .L168+24
+ 2082 0038 2846     		mov	r0, r5
+ 2083 003a FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 2084              	.LVL207:
+ 587:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_BACK_AND_FORTH, ball_control_task_back_and_forth);
+ 2085              		.loc 1 587 5 view .LVU577
+ 2086 003e 1049     		ldr	r1, .L168+28
+ 2087 0040 0120     		movs	r0, #1
+ 2088 0042 FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 2089              	.LVL208:
+ 588:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_CONTINUOUS_TRACK, ball_control_task_continuous_track);
+ 2090              		.loc 1 588 5 view .LVU578
+ 2091 0046 0F49     		ldr	r1, .L168+32
+ 2092 0048 0220     		movs	r0, #2
+ 2093 004a FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 2094              	.LVL209:
+ 589:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_ANTI_DISTURBANCE, ball_control_task_anti_disturbance);
+ 2095              		.loc 1 589 5 view .LVU579
+ 2096 004e 0E49     		ldr	r1, .L168+36
+ 2097 0050 0320     		movs	r0, #3
+ 2098 0052 FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 2099              	.LVL210:
+ 590:application/ball_control.c ****     OLEDMenu_RegisterTask(MENU_TASK_TARGET_POSITION, ball_control_task_target_position);
+ 2100              		.loc 1 590 5 view .LVU580
+ 2101 0056 0D49     		ldr	r1, .L168+40
+ 2102 0058 0420     		movs	r0, #4
+ 2103 005a FFF7FEFF 		bl	OLEDMenu_RegisterTask
+ 2104              	.LVL211:
+ 591:application/ball_control.c **** }
+ 2105              		.loc 1 591 1 is_stmt 0 view .LVU581
+ 2106 005e 07B0     		add	sp, sp, #28
+ 2107              	.LCFI26:
+ 2108              		.cfi_def_cfa_offset 12
+ 2109              		@ sp needed
+ 2110 0060 30BD     		pop	{r4, r5, pc}
+ 2111              	.L169:
+ 2112 0062 00BF     		.align	2
+ 2113              	.L168:
+ 2114 0064 00000000 		.word	ball_control
+ 2115 0068 00006040 		.word	1080033280
+ 2116 006c 000060C0 		.word	-1067450368
+ 2117 0070 CDCC4C3D 		.word	1028443341
+ 2118 0074 CDCC4C3E 		.word	1045220557
+ 2119 0078 9A99193F 		.word	1058642330
+ 2120 007c 00000000 		.word	ball_control_task_stable_position
+ 2121 0080 00000000 		.word	ball_control_task_back_and_forth
+ 2122 0084 00000000 		.word	ball_control_task_continuous_track
+ 2123 0088 00000000 		.word	ball_control_task_anti_disturbance
+ 2124 008c 00000000 		.word	ball_control_task_target_position
+ 2125              		.cfi_endproc
+ 2126              	.LFE83:
+ 2128              		.section	.text.BallControlTask,"ax",%progbits
+ 2129              		.align	1
+ 2130              		.global	BallControlTask
+ 2131              		.syntax unified
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 58
+
+
+ 2132              		.thumb
+ 2133              		.thumb_func
+ 2135              	BallControlTask:
+ 2136              	.LFB84:
+ 592:application/ball_control.c **** 
+ 593:application/ball_control.c **** /**
+ 594:application/ball_control.c ****  * @brief 钢球控制主入口。
+ 595:application/ball_control.c ****  *
+ 596:application/ball_control.c ****  * 进入 OLED 菜单，由菜单持续调用当前选中的任务函数。
+ 597:application/ball_control.c ****  * 该函数内部不会返回。
+ 598:application/ball_control.c ****  */
+ 599:application/ball_control.c **** void BallControlTask(void)
+ 600:application/ball_control.c **** {
+ 2137              		.loc 1 600 1 is_stmt 1 view -0
+ 2138              		.cfi_startproc
+ 2139              		@ args = 0, pretend = 0, frame = 0
+ 2140              		@ frame_needed = 0, uses_anonymous_args = 0
+ 2141 0000 08B5     		push	{r3, lr}
+ 2142              	.LCFI27:
+ 2143              		.cfi_def_cfa_offset 8
+ 2144              		.cfi_offset 3, -8
+ 2145              		.cfi_offset 14, -4
+ 601:application/ball_control.c ****     (void)Main_Menu();
+ 2146              		.loc 1 601 5 view .LVU583
+ 2147              		.loc 1 601 11 is_stmt 0 view .LVU584
+ 2148 0002 FFF7FEFF 		bl	Main_Menu
+ 2149              	.LVL212:
+ 602:application/ball_control.c **** }
+ 2150              		.loc 1 602 1 view .LVU585
+ 2151 0006 08BD     		pop	{r3, pc}
+ 2152              		.cfi_endproc
+ 2153              	.LFE84:
+ 2155              		.section	.bss.ball_control,"aw",%nobits
+ 2156              		.align	2
+ 2159              	ball_control:
+ 2160 0000 00000000 		.space	108
+ 2160      00000000 
+ 2160      00000000 
+ 2160      00000000 
+ 2160      00000000 
+ 2161              		.text
+ 2162              	.Letext0:
+ 2163              		.file 3 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 2164              		.file 4 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ 2165              		.file 5 "modules/k230_to_stm32.h"
+ 2166              		.file 6 "modules/oled_menu.h"
+ 2167              		.file 7 "modules/pid.h"
+ 2168              		.file 8 "modules/x_v2.h"
+ 2169              		.file 9 "D:/BaiduNetdiskDownload/vscode_download/all_in_one/stm32tools/arm-none-eabi-gcc/14.2.1-1.
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 59
 
 
 DEFINED SYMBOLS
                             *ABS*:00000000 ball_control.c
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:19     .text.ball_control_task_stable_position:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:24     .text.ball_control_task_stable_position:00000000 ball_control_task_stable_position
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:38     .text.ball_control_task_back_and_forth:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:43     .text.ball_control_task_back_and_forth:00000000 ball_control_task_back_and_forth
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:57     .text.ball_control_task_continuous_track:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:62     .text.ball_control_task_continuous_track:00000000 ball_control_task_continuous_track
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:76     .text.ball_control_task_anti_disturbance:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:81     .text.ball_control_task_anti_disturbance:00000000 ball_control_task_anti_disturbance
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:95     .text.ball_control_task_target_position:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:100    .text.ball_control_task_target_position:00000000 ball_control_task_target_position
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:114    .text.BallControlInit:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:120    .text.BallControlInit:00000000 BallControlInit
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:161    .text.BallControlInit:0000002c $d
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:170    .text.BallControlTask:00000000 $t
-C:\Users\LJH\AppData\Local\Temp\ccWinT9V.s:176    .text.BallControlTask:00000000 BallControlTask
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:19     .text.PIDClampFloat:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:24     .text.PIDClampFloat:00000000 PIDClampFloat
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:77     .text.BallControl_UpdateReferenceRamp:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:82     .text.BallControl_UpdateReferenceRamp:00000000 BallControl_UpdateReferenceRamp
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:229    .text.BallControl_UpdateReferenceRamp:0000009c $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2159   .bss.ball_control:00000000 ball_control
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:237    .text.BallControl_IsStable:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:242    .text.BallControl_IsStable:00000000 BallControl_IsStable
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:297    .text.BallControl_IsStable:00000034 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:302    .text.BallControl_ApplyTubeAngle:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:307    .text.BallControl_ApplyTubeAngle:00000000 BallControl_ApplyTubeAngle
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:403    .text.BallControl_ApplyTubeAngle:00000058 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:412    .text.ball_control_update_menu_position:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:417    .text.ball_control_update_menu_position:00000000 ball_control_update_menu_position
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:455    .text.ball_control_update_menu_position:00000024 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:460    .text.PIDReset:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:466    .text.PIDReset:00000000 PIDReset
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:495    .text.PIDInit:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:501    .text.PIDInit:00000000 PIDInit
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:576    .text.PIDInit:00000038 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:581    .text.BallControl_ResetRuntime:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:586    .text.BallControl_ResetRuntime:00000000 BallControl_ResetRuntime
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:668    .text.BallControl_ResetRuntime:00000048 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:674    .text.BallControl_BeginTask:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:679    .text.BallControl_BeginTask:00000000 BallControl_BeginTask
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:738    .text.BallControl_BeginTask:00000038 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:743    .text.PIDResetIntegral:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:749    .text.PIDResetIntegral:00000000 PIDResetIntegral
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:771    .text.PIDCalculate:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:777    .text.PIDCalculate:00000000 PIDCalculate
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1013   .text.BallControl_UpdateControlLoop:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1018   .text.BallControl_UpdateControlLoop:00000000 BallControl_UpdateControlLoop
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1136   .text.BallControl_UpdateControlLoop:00000078 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1145   .text.BallControl_Update:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1150   .text.BallControl_Update:00000000 BallControl_Update
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1543   .text.BallControl_Update:000001b8 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1560   .text.ball_control_task_target_position:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1565   .text.ball_control_task_target_position:00000000 ball_control_task_target_position
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1603   .text.ball_control_task_target_position:00000020 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1608   .text.ball_control_task_anti_disturbance:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1613   .text.ball_control_task_anti_disturbance:00000000 ball_control_task_anti_disturbance
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1646   .text.ball_control_task_anti_disturbance:0000001c $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1651   .text.ball_control_task_continuous_track:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1656   .text.ball_control_task_continuous_track:00000000 ball_control_task_continuous_track
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1712   .text.ball_control_task_continuous_track:0000003c $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1717   .text.ball_control_task_back_and_forth:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1722   .text.ball_control_task_back_and_forth:00000000 ball_control_task_back_and_forth
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1844   .text.ball_control_task_back_and_forth:0000009c $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1851   .text.ball_control_task_stable_position:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:1856   .text.ball_control_task_stable_position:00000000 ball_control_task_stable_position
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2016   .text.ball_control_task_stable_position:000000bc $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2025   .text.BallControlInit:00000000 $t
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2031   .text.BallControlInit:00000000 BallControlInit
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2114   .text.BallControlInit:00000064 $d
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2129   .text.BallControlTask:00000000 $t
+ARM GAS  C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s 			page 60
+
+
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2135   .text.BallControlTask:00000000 BallControlTask
+C:\Users\LJH\AppData\Local\Temp\cc4ibJG6.s:2156   .bss.ball_control:00000000 $d
 
 UNDEFINED SYMBOLS
+__aeabi_fcmpgt
+__aeabi_fcmplt
+__aeabi_fsub
+__aeabi_fadd
+__aeabi_fmul
+__aeabi_fdiv
+__aeabi_fcmple
+__aeabi_fcmpge
+X_V2_Bypass_Pos_LV_LC_Control
+OLEDMenu_SetBallPositionCm
+OLEDMenu_SetBallTargetCm
+OLEDMenu_SetBallVelocityCmps
+K230ToStm32GetData
+__aeabi_ui2f
+sinf
+cosf
+OLEDMenu_GetTargetPositionCm
+__aeabi_i2f
 OLEDMenu_RegisterTask
 Main_Menu

@@ -1,5 +1,7 @@
-#ifndef BALL_CONTROL_H
-#define BALL_CONTROL_H
+#ifndef BALL_CONTROL_H   /* 防止 ball_control.h 被重复包含 */
+#define BALL_CONTROL_H   /* 定义 ball_control.h 的头文件保护宏 */
+
+#include "k230_to_stm32.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,8 +20,10 @@ extern "C" {
  * @brief 初始化钢球控制：注册任务函数、准备控制环。
  *
  * @note 在 OLED 初始化和视觉模块初始化之后调用一次。
+ *
+ * @param k230_instance K230 视觉模块实例；为 NULL 时控制任务进入安全失效状态。
  */
-void BallControlInit(void);
+void BallControlInit(K230ToStm32Instance *k230_instance);
 
 /**
  * @brief 控制主入口：进入菜单，由用户在菜单里选任务。

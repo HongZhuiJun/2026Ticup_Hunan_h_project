@@ -60,7 +60,21 @@ void OLEDMenu_RegisterTask(Menu_Task_e task, Menu_TaskFunc_t task_func);
  *
  * @note 任务函数每轮调用一次，菜单在刷新页面时读取。
  */
-void OLEDMenu_SetBallPositionCm(int8_t position_cm);
+void OLEDMenu_SetBallPositionCm(float position_cm);
+
+/**
+ * @brief 设置三级菜单显示的当前目标位置。
+ *
+ * @param target_cm 当前参考目标位置，单位：cm。
+ */
+void OLEDMenu_SetBallTargetCm(float target_cm);
+
+/**
+ * @brief 设置三级菜单显示的小球速度。
+ *
+ * @param velocity_cmps 小球速度，单位：cm/s，向右为正。
+ */
+void OLEDMenu_SetBallVelocityCmps(float velocity_cmps);
 
 /**
  * @brief 读取发挥部分里用户调好的目标位置。

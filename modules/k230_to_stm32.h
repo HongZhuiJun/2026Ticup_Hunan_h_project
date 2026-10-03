@@ -131,6 +131,16 @@ typedef struct {
 uint8_t k230_to_stm32_Init(UART_HandleTypeDef *uart_handle);
 
 /**
+ * @brief 获取 k230_to_stm32_Init() 创建的默认 K230 实例。
+ *
+ * @return 默认实例指针；尚未初始化或初始化失败时返回 NULL。
+ *
+ * @note 该接口只适用于单实例便捷初始化路径。使用
+ *       K230ToStm32Register() 分步注册时，请直接保存返回的实例指针。
+ */
+K230ToStm32Instance *K230ToStm32GetInstance(void);
+
+/**
  * @brief 注册 K230 视觉接收模块（内部会一并注册 BSP 层串口实例）。
  *
  * @param config 注册参数，不可为 NULL。

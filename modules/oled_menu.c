@@ -93,7 +93,13 @@ static uint8_t menu1_cursor = MENU1_ENTRY_BASIC;
 static int8_t specified_location_cm = 0;
 
 /* 当前小球位置，单位：cm，由 Application 经 OLEDMenu_SetBallPositionCm() 更新 */
-static int8_t location_cm = 0;
+static float location_cm = 0.0f;
+
+/* 当前参考目标位置，单位：cm，由 Application 经 OLEDMenu_SetBallTargetCm() 更新 */
+static float target_cm = 0.0f;
+
+/* 当前小球速度，单位：cm/s，由 Application 经 OLEDMenu_SetBallVelocityCmps() 更新 */
+static float velocity_cmps = 0.0f;
 
 /* 任务函数表，下标即 Menu_Task_e，由 OLEDMenu_RegisterTask() 填写。
    菜单只按编号调用，不关心是谁注册的，因此不需要包含 Application 头文件 */
@@ -264,7 +270,18 @@ static void menu2_performance_show(uint8_t entry)
 static void menu3_show(void)
 {
     OLED_Clear();
-    OLED_Printf(0, 0, OLED_8X16, "小球位置:%dcm   ", location_cm);
+    OLED_ShowString(0, 0, "球:", OLED_8X16);
+    OLED_ShowFloatNum(16, 0, (double)location_cm, 2, 2, OLED_8X16);
+    OLED_ShowString(72, 0, "cm", OLED_8X16);
+
+    OLED_ShowString(0, 16, "目标:", OLED_8X16);
+    OLED_ShowFloatNum(16, 16, (double)target_cm, 2, 2, OLED_8X16);
+    OLED_ShowString(72, 16, "cm", OLED_8X16);
+
+    OLED_ShowString(0, 32, "速度:", OLED_8X16);
+    OLED_ShowFloatNum(16, 32, (double)velocity_cmps, 2, 2, OLED_8X16);
+    OLED_ShowString(72, 32, "cm/s", OLED_6X8);
+
     OLED_ShowString(0, menu_row_to_y(MENU3_BACK_HINT_ROW), MENU3_BACK_HINT_TEXT, OLED_8X16);
     menu_highlight(MENU3_BACK_HINT_ROW);
     OLED_Update();
@@ -427,9 +444,19 @@ void OLEDMenu_RegisterTask(Menu_Task_e task, Menu_TaskFunc_t task_func)
     menu_task_table[task] = task_func;
 }
 
-void OLEDMenu_SetBallPositionCm(int8_t position_cm)
+void OLEDMenu_SetBallPositionCm(float position_cm)
 {
     location_cm = position_cm;
+}
+
+void OLEDMenu_SetBallTargetCm(float target_value_cm)
+{
+    target_cm = target_value_cm;
+}
+
+void OLEDMenu_SetBallVelocityCmps(float velocity_value_cmps)
+{
+    velocity_cmps = velocity_value_cmps;
 }
 
 int8_t OLEDMenu_GetTargetPositionCm(void)
